@@ -1,0 +1,43 @@
+{
+  "name": "pipeline-orchestrator",
+  "version": "1.0.0",
+  "description": "Webhook-driven task processing pipeline",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/api/server.ts",
+    "worker": "tsx watch src/worker/index.ts",
+    "build": "tsc --project tsconfig.build.json",
+    "start": "node dist/api/server.js",
+    "start:worker": "node dist/worker/index.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:studio": "drizzle-kit studio",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "bullmq": "^5.4.2",
+    "drizzle-orm": "^0.30.10",
+    "express": "^4.19.2",
+    "ioredis": "^5.3.2",
+    "pg": "^8.11.5",
+    "zod": "^3.23.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.12.7",
+    "@types/pg": "^8.11.5",
+    "@typescript-eslint/eslint-plugin": "^7.7.0",
+    "@typescript-eslint/parser": "^7.7.0",
+    "drizzle-kit": "^0.21.1",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "tsx": "^4.8.2",
+    "typescript": "^5.4.5",
+    "vitest": "^1.5.0"
+  }
+}
