@@ -33,15 +33,15 @@
 
 **⚠️ CRITICAL**: All Phase 3–6 tasks depend on Phase 2 completion.
 
-- [ ] T006 Create `src/db/schema.ts` — define Drizzle enums (`actionType`: field_extractor/payload_filter/http_enricher; `jobStatus`: PENDING/PROCESSING/COMPLETED/FAILED; `deliveryOutcome`: SUCCESS/FAILED) and all 4 tables (`pipelines`, `subscribers`, `jobs`, `delivery_attempts`) with columns, FK constraints, and indexes exactly as specified in `data-model.md`
-- [ ] T007 Create `src/db/index.ts` — export a Drizzle `db` instance backed by a `pg.Pool` using `config.DATABASE_URL`; export the pool for graceful shutdown
-- [ ] T008 Create `src/db/migrate.ts` — export a `runMigrations()` function using `drizzle-kit`'s migrate API pointing to `src/db/migrations/`; this is the entry point for `npm run db:migrate` and the Docker `migrator` service
-- [ ] T009 [P] Create `src/queue/redis.ts` — export a shared `ioredis` connection instance configured from `config.REDIS_HOST`, `config.REDIS_PORT`, and optional `config.REDIS_PASSWORD`; export `closeRedis()` for graceful shutdown
-- [ ] T010 [P] Create `src/queue/queue.ts` — export a BullMQ `Queue` instance named `'webhook-jobs'` using the shared Redis connection from `src/queue/redis.ts`
-- [ ] T011 [P] Create `src/queue/job-data.types.ts` — export `interface JobQueueData { jobId: string; pipelineId: string }`
-- [ ] T012 Create `Dockerfile` — multi-stage build: stage 1 (`builder`) installs all deps and compiles TypeScript to `dist/`; stage 2 (`runtime`) copies `dist/` + `package.json`, installs production deps only, runs as non-root user
-- [ ] T013 Create `docker-compose.yml` — define services: `postgres` (port 5432 with `postgres_data` volume), `redis` (port 6379), `migrator` (runs `npm run db:migrate`, exits on success, depends_on postgres healthy), `api` (port 3000, depends_on postgres + redis healthy + migrator completed), `worker` (depends_on same); include health checks for postgres and redis
-- [ ] T014 Update `.env.example` — add `MAX_PAYLOAD_BYTES=1048576`, `STALLED_JOB_TIMEOUT_MS=300000`, `DELIVERY_TIMEOUT_MS=10000`, `WORKER_CONCURRENCY=5`, `DELIVERY_MAX_RETRIES=3`, `DELIVERY_BACKOFF_MS=1000` alongside existing vars; ensure all vars from `quickstart.md` env reference table are present
+- [x] T006 Create `src/db/schema.ts` — define Drizzle enums (`actionType`: field_extractor/payload_filter/http_enricher; `jobStatus`: PENDING/PROCESSING/COMPLETED/FAILED; `deliveryOutcome`: SUCCESS/FAILED) and all 4 tables (`pipelines`, `subscribers`, `jobs`, `delivery_attempts`) with columns, FK constraints, and indexes exactly as specified in `data-model.md`
+- [x] T007 Create `src/db/index.ts` — export a Drizzle `db` instance backed by a `pg.Pool` using `config.DATABASE_URL`; export the pool for graceful shutdown
+- [x] T008 Create `src/db/migrate.ts` — export a `runMigrations()` function using `drizzle-kit`'s migrate API pointing to `src/db/migrations/`; this is the entry point for `npm run db:migrate` and the Docker `migrator` service
+- [x] T009 [P] Create `src/queue/redis.ts` — export a shared `ioredis` connection instance configured from `config.REDIS_HOST`, `config.REDIS_PORT`, and optional `config.REDIS_PASSWORD`; export `closeRedis()` for graceful shutdown
+- [x] T010 [P] Create `src/queue/queue.ts` — export a BullMQ `Queue` instance named `'webhook-jobs'` using the shared Redis connection from `src/queue/redis.ts`
+- [x] T011 [P] Create `src/queue/job-data.types.ts` — export `interface JobQueueData { jobId: string; pipelineId: string }`
+- [x] T012 Create `Dockerfile` — multi-stage build: stage 1 (`builder`) installs all deps and compiles TypeScript to `dist/`; stage 2 (`runtime`) copies `dist/` + `package.json`, installs production deps only, runs as non-root user
+- [x] T013 Create `docker-compose.yml` — define services: `postgres` (port 5432 with `postgres_data` volume), `redis` (port 6379), `migrator` (runs `npm run db:migrate`, exits on success, depends_on postgres healthy), `api` (port 3000, depends_on postgres + redis healthy + migrator completed), `worker` (depends_on same); include health checks for postgres and redis
+- [x] T014 Update `.env.example` — add `MAX_PAYLOAD_BYTES=1048576`, `STALLED_JOB_TIMEOUT_MS=300000`, `DELIVERY_TIMEOUT_MS=10000`, `WORKER_CONCURRENCY=5`, `DELIVERY_MAX_RETRIES=3`, `DELIVERY_BACKOFF_MS=1000` alongside existing vars; ensure all vars from `quickstart.md` env reference table are present
 
 **Checkpoint**: Foundation ready — DB schema, queue, and Docker all configured. User story phases can now begin.
 
