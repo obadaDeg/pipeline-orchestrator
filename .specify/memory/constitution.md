@@ -1,26 +1,27 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.0.0 → 1.1.0 (MINOR — expanded guidance on existing principles + new section)
+Version change: 1.1.0 → 1.2.0 (MINOR — four new principles added)
 
 Modified principles:
-  - I. Asynchronous Processing: added explicit ingestion sequence and Message Broker component
-  - II. Reliability & Retry: upgraded to exponential backoff, added job state machine,
-    DeliveryAttempt entity, and MaxRetriesExceeded rule
-  - III. Clean Separation of Concerns: expanded with named architectural components
-    (Webhook Receiver, REST API, Job Consumer, Action Transformer, Delivery Engine)
+  - None renamed or redefined
 
-Added sections:
-  - Architecture Reference (links to canonical diagrams)
+Added principles:
+  - VI. Code Quality Standards (new)
+  - VII. Testing Standards (new)
+  - VIII. API Consistency (new)
+  - IX. Performance Requirements (new)
+
+Added sections: None
 
 Removed sections: None
 
-Technology Stack: added Message Broker entry (PostgreSQL-backed or Redis)
+Governance: updated "five core principles" reference to "nine core principles"
 
 Templates reviewed:
-  - .specify/templates/plan-template.md       ✅ aligned (Constitution Check + Complexity Tracking present)
-  - .specify/templates/spec-template.md       ✅ aligned (Key Entities section supports new component names)
-  - .specify/templates/tasks-template.md      ✅ aligned (phased structure supports all five principles)
+  - .specify/templates/plan-template.md       ✅ aligned (Constitution Check gate covers new principles)
+  - .specify/templates/spec-template.md       ✅ aligned (SC/FR structure supports performance + API rules)
+  - .specify/templates/tasks-template.md      ✅ aligned (Polish phase covers testing + code quality tasks)
   - .specify/templates/agent-file-template.md ✅ aligned (no conflicting references)
 
 Deferred TODOs: None
@@ -113,6 +114,81 @@ build and lint; ideally: automated tests). CI MUST pass on the `main` branch.
 **Rationale**: Evaluators will run the project from scratch. A broken Docker setup or
 failing CI is an automatic negative signal regardless of code quality.
 
+### VI. Code Quality Standards
+
+The following rules MUST be applied throughout the codebase:
+
+- Functions and methods MUST have a single, clearly identifiable responsibility.
+  Functions exceeding ~40 lines MUST be decomposed unless the size is explicitly
+  justified by a comment.
+- Magic numbers and magic strings MUST be extracted as named constants or configuration
+  values. Inline literals are PROHIBITED except for trivially obvious values (e.g., `0`,
+  `1`, empty string `""`).
+- Dead code (unreachable branches, unused imports, unused variables) MUST NOT be
+  committed. Linting MUST be configured to enforce this.
+- Exceptions and rejected Promises MUST NOT be swallowed silently. Every `catch` block
+  MUST either re-throw, log with context, or handle the error explicitly.
+- Naming conventions MUST be consistent: `camelCase` for variables and functions,
+  `PascalCase` for types, classes, and interfaces, `SCREAMING_SNAKE_CASE` for
+  module-level constants.
+
+**Rationale**: Readable, well-structured code is a primary evaluation criterion.
+Inconsistent or tangled code signals low craftsmanship regardless of functionality.
+
+### VII. Testing Standards
+
+- All three (or more) processing action types MUST have unit tests covering both the
+  success path and at least one error/edge-case path.
+- The end-to-end flow (webhook ingestion → job processing → subscriber delivery) MUST
+  be covered by at least one integration test.
+- Retry logic in the Delivery Engine MUST be covered by a test that simulates subscriber
+  failure and asserts that retry scheduling occurs correctly.
+- All tests MUST be runnable via a single command (e.g., `npm test`) without any
+  additional manual setup beyond `docker compose up`.
+- Tests MUST be deterministic — no reliance on wall-clock timing, external services, or
+  random state that is not explicitly seeded.
+
+**Rationale**: Tests are the primary mechanism for demonstrating correctness and enabling
+safe iteration. Evaluators may ask to run or extend tests live during the demo.
+
+### VIII. API Consistency
+
+All REST API responses MUST conform to a consistent JSON envelope:
+
+- **Success**: `{ data: <payload>, meta?: <pagination|metadata> }`
+- **Error**: `{ error: { code: "<MACHINE_READABLE_CODE>", message: "<human readable>" } }`
+
+HTTP status codes MUST follow REST conventions:
+
+- `201 Created` for successful resource creation
+- `202 Accepted` for async webhook ingestion
+- `400 Bad Request` for malformed input
+- `404 Not Found` for missing resources
+- `422 Unprocessable Entity` for semantic validation failures
+- `500 Internal Server Error` for unexpected server failures
+
+List endpoints MUST support pagination. Endpoint paths MUST use lowercase, hyphen-
+separated, noun-based resource names (e.g., `/pipelines`, `/jobs/:id/delivery-attempts`).
+
+**Rationale**: A consistent API surface reduces integration friction and demonstrates
+disciplined design — a key evaluation signal under "Architecture" and "Code Quality".
+
+### IX. Performance Requirements
+
+The following performance constraints MUST be met under normal single-instance load:
+
+- The webhook ingestion endpoint (`POST /webhook/:id`) MUST respond within **200ms**
+  (p95) — this is achievable because all heavy work is deferred to the worker.
+- Exponential backoff retry delays MUST include jitter to avoid thundering-herd retry
+  storms when multiple subscribers fail simultaneously.
+- Database tables for `jobs` and `delivery_attempts` MUST have indexes on columns used
+  in frequent query patterns: at minimum, `status`, `pipeline_id`, and `created_at`.
+- Worker concurrency MUST be configurable via environment variable; the default MUST
+  process at least 5 jobs concurrently.
+
+**Rationale**: Performance characteristics directly affect reliability under real load.
+Indexing and concurrency configuration demonstrate systems-design maturity.
+
 ## Technology Stack
 
 - **Language**: TypeScript (strict mode recommended)
@@ -167,7 +243,7 @@ Any amendment requires:
 4. Propagation check across all `.specify/templates/` files.
 
 All feature plans MUST include a Constitution Check section verifying compliance with
-the five core principles before implementation begins. Non-compliance MUST be justified
+all nine core principles before implementation begins. Non-compliance MUST be justified
 in the plan's Complexity Tracking table.
 
-**Version**: 1.1.0 | **Ratified**: 2026-03-11 | **Last Amended**: 2026-03-14
+**Version**: 1.2.0 | **Ratified**: 2026-03-11 | **Last Amended**: 2026-03-14
