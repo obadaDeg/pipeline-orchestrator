@@ -1,0 +1,36 @@
+sequenceDiagram
+    participant External as External Sender
+    participant API as Web API
+    participant DB as PostgreSQL
+    participant Queue as Message Broker
+    participant Worker as Background Worker
+    participant Dest as Subscriber App
+    External->>API: POST /webhook/{source_id} (Payload)
+    activate API
+    API->>DB: Insert Job (status: PENDING)
+    API->>Queue: Enqueue Job Task
+    API-->>External: 202 Accepted (Immediately)
+    deactivate API
+    Note over Queue, Worker: -- Asynchronous Boundary --
+    Worker->>Queue: Poll for Tasks
+    activate Worker
+    Queue-->>Worker: Return Job Task
+    Worker->>DB: Update Job (status: PROCESSING)
+    
+    Note right of Worker: Executes the "Action" <br>(e.g., transforms Payload)
+    
+    Worker->>DB: Save Processed Payload
+    
+    loop For each Subscriber
+        Worker->>Dest: POST Processed Payload
+        alt Delivery Success
+            Dest-->>Worker: 200 OK
+            Worker->>DB: Insert DeliveryAttempt (SUCCESS)
+        else Delivery Failure (e.g. 500 Error / Timeout)
+            Dest-->>Worker: 500 Internal Error
+            Worker->>DB: Insert DeliveryAttempt (FAILED)
+            Worker->>Queue: Schedule Retry (Exponential Backoff)
+        end
+    end
+    Worker->>DB: Update Job (status: COMPLETED or FAILED)
+    deactivate Worker

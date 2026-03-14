@@ -1,0 +1,26 @@
+stateDiagram-v2
+    [*] --> PENDING : Webhook Received
+    PENDING --> PROCESSING : Worker picks up job
+
+    state PROCESSING {
+        [*] --> RunAction
+
+        RunAction --> Delivering : Transformation success
+        RunAction --> ActionFailed : Transformation failed
+
+        state Delivering {
+            [*] --> Attempting
+            Attempting --> AllDelivered : 200 OK
+            Attempting --> DeliveryFailed : 500 / Timeout
+            DeliveryFailed --> ScheduledForRetry : Attempts < max retries
+            ScheduledForRetry --> Attempting : Backoff timer expires
+            DeliveryFailed --> MaxRetriesExceeded : Attempts ≥ max retries
+        }
+    }
+
+    AllDelivered --> COMPLETED : All subscribers notified
+    ActionFailed --> FAILED : Transformation error
+    MaxRetriesExceeded --> FAILED : Delivery permanently failed
+
+    COMPLETED --> [*]
+    FAILED --> [*]
