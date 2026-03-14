@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.git/
+.env
+.env.*
+*.log
+coverage/
+specs/
+docs/
+.specify/
+.DS_Store
+Thumbs.db
