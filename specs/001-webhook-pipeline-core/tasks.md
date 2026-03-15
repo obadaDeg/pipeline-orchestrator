@@ -69,10 +69,10 @@
 
 **Independent Test**: POST to `/webhooks/<sourceId>` returns 202 with a `jobId`. A Job row with status PENDING appears in the DB. No processing has started yet.
 
-- [ ] T020 [P] [US2] Create `src/api/middleware/body-size-limit.ts` — Express middleware that checks `Content-Length` header first for early rejection, then buffers the raw body and rejects with `PayloadTooLargeError` if byte length exceeds `config.MAX_PAYLOAD_BYTES`; stores raw body string on `req.rawBody` for the ingestion controller; depends on T001, T002
-- [ ] T021 [US2] Create `src/services/ingestion.service.ts` — implement `ingestWebhook(sourceId, rawBody)`: look up pipeline by `source_id` (throw `NotFoundError` if not found), insert a Job row with `status=PENDING` and `raw_payload=rawBody`, enqueue a BullMQ job with `JobQueueData { jobId, pipelineId }`, return `{ jobId }`; depends on T006, T007, T010, T011
-- [ ] T022 [US2] Create `src/api/controllers/webhooks.controller.ts` — single handler for `POST /webhooks/:sourceId`: read `req.rawBody` (set by body-size-limit middleware), call `ingestion.service.ingestWebhook`, return `successResponse({ jobId })` with status 202; handler for non-POST methods returns `MethodNotAllowedError`; depends on T020, T021
-- [ ] T023 [US2] Create `src/api/routes/webhooks.router.ts` — mount `body-size-limit` middleware then `webhooks.controller` handler on `POST /webhooks/:sourceId`; also wire a catch-all for other methods on the same path to return 405; depends on T022
+- [x] T020 [P] [US2] Create `src/api/middleware/body-size-limit.ts` — Express middleware that checks `Content-Length` header first for early rejection, then buffers the raw body and rejects with `PayloadTooLargeError` if byte length exceeds `config.MAX_PAYLOAD_BYTES`; stores raw body string on `req.rawBody` for the ingestion controller; depends on T001, T002
+- [x] T021 [US2] Create `src/services/ingestion.service.ts` — implement `ingestWebhook(sourceId, rawBody)`: look up pipeline by `source_id` (throw `NotFoundError` if not found), insert a Job row with `status=PENDING` and `raw_payload=rawBody`, enqueue a BullMQ job with `JobQueueData { jobId, pipelineId }`, return `{ jobId }`; depends on T006, T007, T010, T011
+- [x] T022 [US2] Create `src/api/controllers/webhooks.controller.ts` — single handler for `POST /webhooks/:sourceId`: read `req.rawBody` (set by body-size-limit middleware), call `ingestion.service.ingestWebhook`, return `successResponse({ jobId })` with status 202; handler for non-POST methods returns `MethodNotAllowedError`; depends on T020, T021
+- [x] T023 [US2] Create `src/api/routes/webhooks.router.ts` — mount `body-size-limit` middleware then `webhooks.controller` handler on `POST /webhooks/:sourceId`; also wire a catch-all for other methods on the same path to return 405; depends on T022
 
 **Checkpoint**: User Story 2 complete — external callers can POST webhooks and receive immediate 202 responses.
 
