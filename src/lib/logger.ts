@@ -7,7 +7,9 @@ function log(level: LogLevel, message: string, meta?: unknown): void {
     message,
   };
   if (meta !== undefined) {
-    entry.meta = meta;
+    entry.meta = meta instanceof Error
+      ? { message: meta.message, stack: meta.stack }
+      : meta;
   }
   const output = JSON.stringify(entry);
   if (level === 'error') {
