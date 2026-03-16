@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { listPipelineJobs } from '../controllers/jobs.controller.js';
 import * as controller from '../controllers/pipelines.controller.js';
 import { validateBody } from '../middleware/validate-request.js';
 import { CreatePipelineBodySchema, UpdatePipelineBodySchema } from '../schemas/pipeline.schema.js';
@@ -10,8 +11,4 @@ pipelinesRouter.get('/', controller.listPipelines);
 pipelinesRouter.get('/:id', controller.getPipeline);
 pipelinesRouter.patch('/:id', validateBody(UpdatePipelineBodySchema), controller.updatePipeline);
 pipelinesRouter.delete('/:id', controller.deletePipeline);
-
-// Stub — connected to jobs.controller.listPipelineJobs in T040
-pipelinesRouter.get('/:id/jobs', (_req, res) => {
-  res.status(501).json({ error: { code: 'NOT_IMPLEMENTED', message: 'Not yet implemented' } });
-});
+pipelinesRouter.get('/:id/jobs', listPipelineJobs);

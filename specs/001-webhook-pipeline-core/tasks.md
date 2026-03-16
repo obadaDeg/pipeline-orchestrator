@@ -107,11 +107,11 @@
 
 **Independent Test**: Using only status endpoints (GET /jobs/:id, GET /pipelines/:id/jobs, GET /jobs/:id/delivery-attempts), a developer can trace a webhook from ingestion to final delivery outcome.
 
-- [ ] T036 [P] [US4] Create `src/api/schemas/job.schema.ts` — Zod schemas: `JobIdParamSchema` (`{ id: z.string().uuid() }`), `PipelineJobsQuerySchema` (extends `PaginationQuerySchema` from pipeline.schema.ts)
-- [ ] T037 [US4] Create `src/services/job.service.ts` — implement `getJobById(id)` (full job row including all columns, throw NotFoundError if missing), `listJobsForPipeline(pipelineId, page, limit)` (verify pipeline exists first, then paginated query ordered by `created_at DESC`, omit `raw_payload` and `processed_payload` from list items), `getDeliveryAttempts(jobId)` (verify job exists, return all attempts ordered by `attempt_number ASC`, no pagination); depends on T006, T007
-- [ ] T038 [US4] Create `src/api/controllers/jobs.controller.ts` — implement handlers: `getJob` (returns full job record), `listPipelineJobs` (returns paginated job list without payloads), `getDeliveryAttempts` (returns unpaginated delivery attempts list); each uses `successResponse` envelope; depends on T036, T037
-- [ ] T039 [US4] Create `src/api/routes/jobs.router.ts` — wire `GET /jobs/:id` and `GET /jobs/:id/delivery-attempts` using jobs.controller handlers; depends on T038
-- [ ] T040 [US4] Update `src/api/routes/pipelines.router.ts` to connect the `GET /pipelines/:id/jobs` route stub (added in T019) to `jobs.controller.listPipelineJobs`; depends on T038, T039
+- [x] T036 [P] [US4] Create `src/api/schemas/job.schema.ts` — Zod schemas: `JobIdParamSchema` (`{ id: z.string().uuid() }`), `PipelineJobsQuerySchema` (extends `PaginationQuerySchema` from pipeline.schema.ts)
+- [x] T037 [US4] Create `src/services/job.service.ts` — implement `getJobById(id)` (full job row including all columns, throw NotFoundError if missing), `listJobsForPipeline(pipelineId, page, limit)` (verify pipeline exists first, then paginated query ordered by `created_at DESC`, omit `raw_payload` and `processed_payload` from list items), `getDeliveryAttempts(jobId)` (verify job exists, return all attempts ordered by `attempt_number ASC`, no pagination); depends on T006, T007
+- [x] T038 [US4] Create `src/api/controllers/jobs.controller.ts` — implement handlers: `getJob` (returns full job record), `listPipelineJobs` (returns paginated job list without payloads), `getDeliveryAttempts` (returns unpaginated delivery attempts list); each uses `successResponse` envelope; depends on T036, T037
+- [x] T039 [US4] Create `src/api/routes/jobs.router.ts` — wire `GET /jobs/:id` and `GET /jobs/:id/delivery-attempts` using jobs.controller handlers; depends on T038
+- [x] T040 [US4] Update `src/api/routes/pipelines.router.ts` to connect the `GET /pipelines/:id/jobs` route stub (added in T019) to `jobs.controller.listPipelineJobs`; depends on T038, T039
 
 **Checkpoint**: User Story 4 complete — all observability endpoints functional; full lifecycle traceable via API.
 
