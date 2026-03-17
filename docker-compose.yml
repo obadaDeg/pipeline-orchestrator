@@ -38,7 +38,7 @@ services:
 
   api:
     build: .
-    command: ["node", "dist/api/server.js"]
+    command: ["node", "dist/api/index.js"]
     ports:
       - "3000:3000"
     environment:

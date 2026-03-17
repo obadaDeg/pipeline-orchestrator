@@ -9,7 +9,7 @@
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended"
   ],
-  "ignorePatterns": ["drizzle.config.ts", "drizzle/"],
+  "ignorePatterns": ["drizzle.config.ts", "drizzle/", "tests/"],
   "rules": {
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     "@typescript-eslint/no-explicit-any": "warn"

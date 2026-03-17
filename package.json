@@ -4,10 +4,10 @@
   "description": "Webhook-driven task processing pipeline",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/api/server.ts",
-    "worker": "tsx watch src/worker/index.ts",
+    "dev": "node --env-file .env --import tsx/esm --watch src/api/index.ts",
+    "worker": "node --env-file .env --import tsx/esm --watch src/worker/index.ts",
     "build": "tsc --project tsconfig.build.json",
-    "start": "node dist/api/server.js",
+    "start": "node dist/api/index.js",
     "start:worker": "node dist/worker/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
@@ -16,8 +16,10 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write src",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest run tests/unit",
+    "test:watch": "vitest",
+    "test:integration": "vitest run tests/integration",
+    "test:all": "vitest run"
   },
   "dependencies": {
     "bullmq": "^5.4.2",
