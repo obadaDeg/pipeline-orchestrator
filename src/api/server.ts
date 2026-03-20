@@ -2,6 +2,7 @@ import express from 'express';
 import { config } from '../config.js';
 import { logger } from '../lib/logger.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { authRouter } from './routes/auth.router.js';
 import { jobsRouter } from './routes/jobs.router.js';
 import { pipelinesRouter } from './routes/pipelines.router.js';
 import { webhooksRouter } from './routes/webhooks.router.js';
@@ -16,6 +17,7 @@ app.use('/webhooks', webhooksRouter);
 // Body parsing for all other routes
 app.use(express.json());
 
+app.use('/auth', authRouter);
 app.use('/pipelines', pipelinesRouter);
 app.use('/jobs', jobsRouter);
 
