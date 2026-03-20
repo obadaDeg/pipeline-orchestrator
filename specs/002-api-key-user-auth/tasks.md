@@ -22,9 +22,9 @@ description: "Task list for 002-api-key-user-auth"
 
 **Purpose**: Install new dependency, extend types, and create core utility library
 
-- [ ] T001 [P] Add `argon2` package to dependencies in `package.json` and run `npm install`
-- [ ] T002 [P] Create Express Request type extension for `req.user` typed as authenticated user in `src/types/express.d.ts`
-- [ ] T003 [P] Create API key utility library — `generateApiKey()` (crypto.randomBytes → `wh_` prefix + base64), `hashApiKey()` (SHA-256 hex), `getKeyPrefix()` (first 8 chars) — in `src/lib/api-key.ts`
+- [x] T001 [P] Add `argon2` package to dependencies in `package.json` and run `npm install`
+- [x] T002 [P] Create Express Request type extension for `req.user` typed as authenticated user in `src/types/express.d.ts`
+- [x] T003 [P] Create API key utility library — `generateApiKey()` (crypto.randomBytes → `wh_` prefix + base64), `hashApiKey()` (SHA-256 hex), `getKeyPrefix()` (first 8 chars) — in `src/lib/api-key.ts`
 
 ---
 
@@ -34,12 +34,12 @@ description: "Task list for 002-api-key-user-auth"
 
 **⚠️ CRITICAL**: No user story work can begin until T008 (migration) is complete.
 
-- [ ] T004 Add `users` table (id, email, password_hash, created_at, updated_at) and `api_keys` table (id, user_id, name, key_hash, key_prefix, last_used_at, revoked_at, created_at) with all indexes to `src/db/schema.ts`
-- [ ] T005 Add `teams` table (id, name, owner_user_id, created_at, updated_at) and `team_memberships` table (id, team_id, user_id, created_at) with UNIQUE constraint on `(team_id, user_id)` and indexes to `src/db/schema.ts`
-- [ ] T006 Add `audit_event_type` pg enum (`KEY_CREATED`, `KEY_REVOKED`, `AUTH_FAILED`, `TEAM_CREATED`, `TEAM_DELETED`, `TEAM_MEMBER_ADDED`, `TEAM_MEMBER_REMOVED`, `USER_REGISTERED`) and `audit_events` table (id, user_id, event_type, metadata jsonb, created_at) with indexes to `src/db/schema.ts`
-- [ ] T007 Add nullable `owner_user_id` (FK → users.id SET NULL) and `owner_team_id` (FK → teams.id SET NULL) columns with indexes to `pipelines` table in `src/db/schema.ts`
-- [ ] T008 Generate and apply Drizzle migration: run `npm run db:generate` then `npm run db:migrate`
-- [ ] T009 [P] Add `UnauthorizedError` (extends `AppError`, HTTP 401, code `UNAUTHORIZED`) and `ForbiddenError` (HTTP 403, code `FORBIDDEN`) to `src/lib/errors.ts`
+- [x] T004 Add `users` table (id, email, password_hash, created_at, updated_at) and `api_keys` table (id, user_id, name, key_hash, key_prefix, last_used_at, revoked_at, created_at) with all indexes to `src/db/schema.ts`
+- [x] T005 Add `teams` table (id, name, owner_user_id, created_at, updated_at) and `team_memberships` table (id, team_id, user_id, created_at) with UNIQUE constraint on `(team_id, user_id)` and indexes to `src/db/schema.ts`
+- [x] T006 Add `audit_event_type` pg enum (`KEY_CREATED`, `KEY_REVOKED`, `AUTH_FAILED`, `TEAM_CREATED`, `TEAM_DELETED`, `TEAM_MEMBER_ADDED`, `TEAM_MEMBER_REMOVED`, `USER_REGISTERED`) and `audit_events` table (id, user_id, event_type, metadata jsonb, created_at) with indexes to `src/db/schema.ts`
+- [x] T007 Add nullable `owner_user_id` (FK → users.id SET NULL) and `owner_team_id` (FK → teams.id SET NULL) columns with indexes to `pipelines` table in `src/db/schema.ts`
+- [x] T008 Generate and apply Drizzle migration: run `npm run db:generate` then `npm run db:migrate`
+- [x] T009 [P] Add `UnauthorizedError` (extends `AppError`, HTTP 401, code `UNAUTHORIZED`) and `ForbiddenError` (HTTP 403, code `FORBIDDEN`) to `src/lib/errors.ts`
 
 **Checkpoint**: Database schema is ready and error types exist — user story implementation can now begin
 
