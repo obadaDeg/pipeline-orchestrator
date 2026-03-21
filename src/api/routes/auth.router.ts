@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import * as controller from '../controllers/auth.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { validateBody } from '../middleware/validate-request.js';
@@ -6,8 +7,25 @@ import { CreateApiKeyBodySchema, LoginBodySchema, RegisterBodySchema } from '../
 
 export const authRouter = Router();
 
-authRouter.post('/register', validateBody(RegisterBodySchema), controller.registerHandler);
-authRouter.post('/login', validateBody(LoginBodySchema), controller.loginHandler);
+// Rate limiting — prevent credential stuffing on public auth endpoints
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many registration attempts. Try again in 15 minutes.' } },
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many login attempts. Try again in 15 minutes.' } },
+});
+
+authRouter.post('/register', registerLimiter, validateBody(RegisterBodySchema), controller.registerHandler);
+authRouter.post('/login', loginLimiter, validateBody(LoginBodySchema), controller.loginHandler);
 
 // Key management — all require authentication
 authRouter.get('/keys', authenticate, controller.listKeysHandler);

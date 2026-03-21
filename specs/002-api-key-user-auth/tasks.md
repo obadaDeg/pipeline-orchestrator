@@ -140,13 +140,13 @@ description: "Task list for 002-api-key-user-auth"
 
 **Purpose**: Hardening, compliance verification, and documentation
 
-- [ ] T049 [P] Add request rate limiting middleware to `POST /auth/register` and `POST /auth/login` to prevent credential stuffing in `src/api/routes/auth.router.ts`
-- [ ] T050 [P] Verify `last_used_at` update in `src/api/middleware/authenticate.ts` is fully non-blocking (fire-and-forget with caught error, no await)
-- [ ] T051 [P] Review all authentication error responses in `src/api/middleware/authenticate.ts` and `src/services/auth.service.ts` to confirm no information leakage (revoked key and invalid key return identical `UNAUTHORIZED` response)
-- [ ] T052 [P] Verify all new endpoints return `{ data: ... }` / `{ error: { code, message } }` envelope and correct HTTP status codes per constitution principle VIII
-- [ ] T053 [P] Confirm all new DB tables have the indexes specified in `data-model.md` (cross-check `src/db/schema.ts` against constitution principle IX)
-- [ ] T054 Update `README.md` with: auth endpoints reference, API key usage guide, team management guide, and link to `quickstart.md`
-- [ ] T055 Run `npm test && npm run lint && npm run typecheck` — resolve all failures before marking this phase complete
+- [X] T049 [P] Add request rate limiting middleware to `POST /auth/register` and `POST /auth/login` to prevent credential stuffing in `src/api/routes/auth.router.ts`
+- [X] T050 [P] Verify `last_used_at` update in `src/api/middleware/authenticate.ts` is fully non-blocking (fire-and-forget with caught error, no await)
+- [X] T051 [P] Review all authentication error responses in `src/api/middleware/authenticate.ts` and `src/services/auth.service.ts` to confirm no information leakage (revoked key and invalid key return identical `UNAUTHORIZED` response)
+- [X] T052 [P] Verify all new endpoints return `{ data: ... }` / `{ error: { code, message } }` envelope and correct HTTP status codes per constitution principle VIII
+- [X] T053 [P] Confirm all new DB tables have the indexes specified in `data-model.md` (cross-check `src/db/schema.ts` against constitution principle IX)
+- [X] T054 Update `README.md` with: auth endpoints reference, API key usage guide, team management guide, and link to `quickstart.md`
+- [X] T055 Run `npm test && npm run lint && npm run typecheck` — resolve all failures before marking this phase complete
 
 ---
 
