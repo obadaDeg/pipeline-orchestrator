@@ -5,6 +5,7 @@ import { errorHandler } from './middleware/error-handler.js';
 import { authRouter } from './routes/auth.router.js';
 import { jobsRouter } from './routes/jobs.router.js';
 import { pipelinesRouter } from './routes/pipelines.router.js';
+import { teamsRouter } from './routes/teams.router.js';
 import { webhooksRouter } from './routes/webhooks.router.js';
 
 export const app = express();
@@ -20,6 +21,7 @@ app.use(express.json());
 app.use('/auth', authRouter);
 app.use('/pipelines', pipelinesRouter);
 app.use('/jobs', jobsRouter);
+app.use('/teams', teamsRouter);
 
 // Error handler must be last — Express identifies 4-argument functions as error handlers
 app.use(errorHandler);

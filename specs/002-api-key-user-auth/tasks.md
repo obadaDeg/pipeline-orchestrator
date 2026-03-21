@@ -96,16 +96,16 @@ description: "Task list for 002-api-key-user-auth"
 
 ### Implementation for User Story 3
 
-- [ ] T027 [P] [US3] Create Zod schemas for `POST /teams` (name), `POST /teams/:id/members` (email) in `src/api/schemas/team.schema.ts`
-- [ ] T028 [US3] Implement `createTeam(ownerUserId, name)`, `getTeam(teamId, requestingUserId)` (includes member list, enforces membership), and `deleteTeam(teamId, requestingUserId)` — on delete, UPDATE pipelines SET owner_user_id = team.owner_user_id, owner_team_id = NULL WHERE owner_team_id = teamId — in `src/services/team.service.ts`
-- [ ] T029 [US3] Implement `addMember(teamId, ownerUserId, targetEmail)` — look up user by email, error if not found, insert team_membership — and `removeMember(teamId, ownerUserId, targetUserId)` — block owner self-removal — in `src/services/team.service.ts`
-- [ ] T030 [US3] Implement `getUserTeamIds(userId)` — returns array of team IDs the user owns or is a member of — in `src/services/team.service.ts`
-- [ ] T031 [P] [US3] Implement teams controller handlers: `createTeamHandler`, `getTeamHandler`, `deleteTeamHandler`, `addMemberHandler`, `removeMemberHandler` in `src/api/controllers/teams.controller.ts`
-- [ ] T032 [US3] Create teams router: `POST /teams`, `GET /teams/:id`, `DELETE /teams/:id`, `POST /teams/:id/members`, `DELETE /teams/:id/members/:userId` — all behind `authenticate` middleware — in `src/api/routes/teams.router.ts`
-- [ ] T033 [US3] Register teams router at `/teams` prefix in `src/api/server.ts`
-- [ ] T034 [US3] Update `listPipelines()` and `getPipeline()` ownership filter in `src/services/pipeline.service.ts` to include pipelines where `owner_team_id IN (getUserTeamIds(userId))` using a JOIN or subquery
-- [ ] T035 [US3] Update `createPipeline()` in `src/services/pipeline.service.ts` to accept `teamId`: verify user is team owner or member, set `owner_team_id = teamId` and `owner_user_id = null`
-- [ ] T036 [P] [US3] Write unit tests for team service: createTeam, deleteTeam (verify pipeline transfer), addMember (user not found), removeMember (block owner), getUserTeamIds in `tests/unit/teams/team.service.test.ts`
+- [X] T027 [P] [US3] Create Zod schemas for `POST /teams` (name), `POST /teams/:id/members` (email) in `src/api/schemas/team.schema.ts`
+- [X] T028 [US3] Implement `createTeam(ownerUserId, name)`, `getTeam(teamId, requestingUserId)` (includes member list, enforces membership), and `deleteTeam(teamId, requestingUserId)` — on delete, UPDATE pipelines SET owner_user_id = team.owner_user_id, owner_team_id = NULL WHERE owner_team_id = teamId — in `src/services/team.service.ts`
+- [X] T029 [US3] Implement `addMember(teamId, ownerUserId, targetEmail)` — look up user by email, error if not found, insert team_membership — and `removeMember(teamId, ownerUserId, targetUserId)` — block owner self-removal — in `src/services/team.service.ts`
+- [X] T030 [US3] Implement `getUserTeamIds(userId)` — returns array of team IDs the user owns or is a member of — in `src/services/team.service.ts`
+- [X] T031 [P] [US3] Implement teams controller handlers: `createTeamHandler`, `getTeamHandler`, `deleteTeamHandler`, `addMemberHandler`, `removeMemberHandler` in `src/api/controllers/teams.controller.ts`
+- [X] T032 [US3] Create teams router: `POST /teams`, `GET /teams/:id`, `DELETE /teams/:id`, `POST /teams/:id/members`, `DELETE /teams/:id/members/:userId` — all behind `authenticate` middleware — in `src/api/routes/teams.router.ts`
+- [X] T033 [US3] Register teams router at `/teams` prefix in `src/api/server.ts`
+- [X] T034 [US3] Update `listPipelines()` and `getPipeline()` ownership filter in `src/services/pipeline.service.ts` to include pipelines where `owner_team_id IN (getUserTeamIds(userId))` using a JOIN or subquery
+- [X] T035 [US3] Update `createPipeline()` in `src/services/pipeline.service.ts` to accept `teamId`: verify user is team owner or member, set `owner_team_id = teamId` and `owner_user_id = null`
+- [X] T036 [P] [US3] Write unit tests for team service: createTeam, deleteTeam (verify pipeline transfer), addMember (user not found), removeMember (block owner), getUserTeamIds in `tests/unit/teams/team.service.test.ts`
 
 **Checkpoint**: Teams exist. Team pipelines are visible to all members and invisible to non-members. Deleting a team transfers its pipelines to the owner.
 
@@ -119,18 +119,18 @@ description: "Task list for 002-api-key-user-auth"
 
 ### Implementation for User Story 4
 
-- [ ] T037 [US4] Add Zod schemas for key creation (`POST /auth/keys` body: `{ name }`) and list/revoke responses to `src/api/schemas/auth.schema.ts`
-- [ ] T038 [US4] Implement `createApiKey(userId, name)` — enforce 10-key limit (count active keys), generate key, hash, insert row, return full key (only time) — in `src/services/auth.service.ts`
-- [ ] T039 [US4] Implement `revokeApiKey(userId, keyId)` — verify key belongs to user and is not already revoked, set `revoked_at = now()` — in `src/services/auth.service.ts`
-- [ ] T040 [US4] Implement `listApiKeys(userId)` — return all keys for user with metadata (id, name, key_prefix, created_at, last_used_at, revoked_at), never key_hash — in `src/services/auth.service.ts`
-- [ ] T041 [P] [US4] Implement auth controller handlers: `listKeysHandler`, `createKeyHandler`, `revokeKeyHandler` in `src/api/controllers/auth.controller.ts`
-- [ ] T042 [US4] Add `GET /auth/keys`, `POST /auth/keys`, `DELETE /auth/keys/:id` routes (all behind `authenticate`) to `src/api/routes/auth.router.ts`
-- [ ] T043 [US4] Implement `emitAuditEvent(userId, eventType, metadata)` and `getUserAuditLog(userId, page, limit)` in `src/services/auth.service.ts`
-- [ ] T044 [US4] Wire audit event calls into `register()` (USER_REGISTERED), `validateApiKey()` failure path (AUTH_FAILED), `createApiKey()` (KEY_CREATED), `revokeApiKey()` (KEY_REVOKED) in `src/services/auth.service.ts`
-- [ ] T045 [US4] Wire audit event calls into team service: TEAM_CREATED, TEAM_DELETED, TEAM_MEMBER_ADDED, TEAM_MEMBER_REMOVED in `src/services/team.service.ts`
-- [ ] T046 [P] [US4] Implement `getAuditLogHandler` with pagination support in `src/api/controllers/auth.controller.ts`
-- [ ] T047 [US4] Add `GET /auth/audit-log` route (behind `authenticate`) to `src/api/routes/auth.router.ts`
-- [ ] T048 [P] [US4] Write unit tests for auth service key lifecycle: createApiKey (success, 10-key limit enforced), revokeApiKey (success, already-revoked error, wrong-user 404), listApiKeys in `tests/unit/auth/auth.service.test.ts`
+- [X] T037 [US4] Add Zod schemas for key creation (`POST /auth/keys` body: `{ name }`) and list/revoke responses to `src/api/schemas/auth.schema.ts`
+- [X] T038 [US4] Implement `createApiKey(userId, name)` — enforce 10-key limit (count active keys), generate key, hash, insert row, return full key (only time) — in `src/services/auth.service.ts`
+- [X] T039 [US4] Implement `revokeApiKey(userId, keyId)` — verify key belongs to user and is not already revoked, set `revoked_at = now()` — in `src/services/auth.service.ts`
+- [X] T040 [US4] Implement `listApiKeys(userId)` — return all keys for user with metadata (id, name, key_prefix, created_at, last_used_at, revoked_at), never key_hash — in `src/services/auth.service.ts`
+- [X] T041 [P] [US4] Implement auth controller handlers: `listKeysHandler`, `createKeyHandler`, `revokeKeyHandler` in `src/api/controllers/auth.controller.ts`
+- [X] T042 [US4] Add `GET /auth/keys`, `POST /auth/keys`, `DELETE /auth/keys/:id` routes (all behind `authenticate`) to `src/api/routes/auth.router.ts`
+- [X] T043 [US4] Implement `emitAuditEvent(userId, eventType, metadata)` and `getUserAuditLog(userId, page, limit)` in `src/services/auth.service.ts`
+- [X] T044 [US4] Wire audit event calls into `register()` (USER_REGISTERED), `validateApiKey()` failure path (AUTH_FAILED), `createApiKey()` (KEY_CREATED), `revokeApiKey()` (KEY_REVOKED) in `src/services/auth.service.ts`
+- [X] T045 [US4] Wire audit event calls into team service: TEAM_CREATED, TEAM_DELETED, TEAM_MEMBER_ADDED, TEAM_MEMBER_REMOVED in `src/services/team.service.ts`
+- [X] T046 [P] [US4] Implement `getAuditLogHandler` with pagination support in `src/api/controllers/auth.controller.ts`
+- [X] T047 [US4] Add `GET /auth/audit-log` route (behind `authenticate`) to `src/api/routes/auth.router.ts`
+- [X] T048 [P] [US4] Write unit tests for auth service key lifecycle: createApiKey (success, 10-key limit enforced), revokeApiKey (success, already-revoked error, wrong-user 404), listApiKeys in `tests/unit/auth/auth.service.test.ts`
 
 **Checkpoint**: All four user stories are independently functional. Full audit trail is available via API.
 

@@ -10,5 +10,10 @@ export const LoginBodySchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+export const CreateApiKeyBodySchema = z.object({
+  name: z.string().min(1, 'Key name is required'),
+});
+
 export type RegisterBody = z.infer<typeof RegisterBodySchema>;
 export type LoginBody = z.infer<typeof LoginBodySchema>;
+export type CreateApiKeyBody = z.infer<typeof CreateApiKeyBodySchema>;

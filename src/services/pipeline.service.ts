@@ -1,8 +1,9 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { SQL, and, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { config } from '../config.js';
 import { db } from '../db/index.js';
 import { pipelines, subscribers } from '../db/schema.js';
-import { NotFoundError } from '../lib/errors.js';
+import { AppError, NotFoundError } from '../lib/errors.js';
+import { getUserTeamIds } from './team.service.js';
 
 type ActionType = 'field_extractor' | 'payload_filter' | 'http_enricher';
 
@@ -55,9 +56,29 @@ function formatPipelineListItem(pipeline: PipelineRow) {
   };
 }
 
+/**
+ * Builds a WHERE clause that matches pipelines the user can access:
+ *   - personal: owner_user_id = userId
+ *   - team: owner_team_id IN (teams user owns or is a member of)
+ */
+async function buildVisibilityFilter(userId: string): Promise<SQL> {
+  const teamIds = await getUserTeamIds(userId);
+  const personalFilter = eq(pipelines.ownerUserId, userId);
+  if (teamIds.length === 0) return personalFilter;
+  return or(personalFilter, inArray(pipelines.ownerTeamId, teamIds))!;
+}
+
 // ─── Service Functions ────────────────────────────────────────────────────────
 
 export async function createPipeline(input: CreatePipelineInput) {
+  // If a teamId is provided, verify the user belongs to that team
+  if (input.ownerTeamId) {
+    const teamIds = await getUserTeamIds(input.ownerUserId);
+    if (!teamIds.includes(input.ownerTeamId)) {
+      throw new AppError(403, 'FORBIDDEN', 'You are not a member of that team');
+    }
+  }
+
   return db.transaction(async (tx) => {
     const [pipeline] = await tx
       .insert(pipelines)
@@ -65,7 +86,8 @@ export async function createPipeline(input: CreatePipelineInput) {
         name: input.name,
         actionType: input.actionType,
         actionConfig: input.actionConfig,
-        ownerUserId: input.ownerUserId,
+        // Team pipeline: ownerTeamId set, ownerUserId null. Personal: vice versa.
+        ownerUserId: input.ownerTeamId ? null : input.ownerUserId,
         ownerTeamId: input.ownerTeamId ?? null,
       })
       .returning();
@@ -82,29 +104,30 @@ export async function createPipeline(input: CreatePipelineInput) {
   });
 }
 
-export async function getPipelineById(id: string, ownerUserId: string) {
+export async function getPipelineById(id: string, userId: string) {
+  const visibilityFilter = await buildVisibilityFilter(userId);
   const [pipeline] = await db
     .select()
     .from(pipelines)
-    .where(and(eq(pipelines.id, id), eq(pipelines.ownerUserId, ownerUserId)));
+    .where(and(eq(pipelines.id, id), visibilityFilter));
   if (!pipeline) throw new NotFoundError('PIPELINE_NOT_FOUND', 'Pipeline not found');
 
   const subs = await db.select().from(subscribers).where(eq(subscribers.pipelineId, id));
   return formatPipeline(pipeline, subs);
 }
 
-export async function listPipelines(page: number, limit: number, ownerUserId: string) {
+export async function listPipelines(page: number, limit: number, userId: string) {
   const offset = (page - 1) * limit;
-  const ownerFilter = eq(pipelines.ownerUserId, ownerUserId);
+  const visibilityFilter = await buildVisibilityFilter(userId);
 
   const [{ total }] = await db
     .select({ total: sql<number>`count(*)::int` })
     .from(pipelines)
-    .where(ownerFilter);
+    .where(visibilityFilter);
   const rows = await db
     .select()
     .from(pipelines)
-    .where(ownerFilter)
+    .where(visibilityFilter)
     .orderBy(desc(pipelines.createdAt))
     .limit(limit)
     .offset(offset);
@@ -117,11 +140,12 @@ export async function listPipelines(page: number, limit: number, ownerUserId: st
   };
 }
 
-export async function updatePipeline(id: string, input: UpdatePipelineInput, ownerUserId: string) {
+export async function updatePipeline(id: string, input: UpdatePipelineInput, userId: string) {
+  const visibilityFilter = await buildVisibilityFilter(userId);
   const [existing] = await db
     .select()
     .from(pipelines)
-    .where(and(eq(pipelines.id, id), eq(pipelines.ownerUserId, ownerUserId)));
+    .where(and(eq(pipelines.id, id), visibilityFilter));
   if (!existing) throw new NotFoundError('PIPELINE_NOT_FOUND', 'Pipeline not found');
 
   return db.transaction(async (tx) => {
@@ -155,11 +179,12 @@ export async function updatePipeline(id: string, input: UpdatePipelineInput, own
   });
 }
 
-export async function deletePipeline(id: string, ownerUserId: string): Promise<void> {
+export async function deletePipeline(id: string, userId: string): Promise<void> {
+  const visibilityFilter = await buildVisibilityFilter(userId);
   const [existing] = await db
     .select()
     .from(pipelines)
-    .where(and(eq(pipelines.id, id), eq(pipelines.ownerUserId, ownerUserId)));
+    .where(and(eq(pipelines.id, id), visibilityFilter));
   if (!existing) throw new NotFoundError('PIPELINE_NOT_FOUND', 'Pipeline not found');
   await db.delete(pipelines).where(eq(pipelines.id, id));
 }
