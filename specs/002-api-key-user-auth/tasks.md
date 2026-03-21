@@ -75,14 +75,14 @@ description: "Task list for 002-api-key-user-auth"
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Apply `authenticate` middleware to all routes in `src/api/routes/pipelines.router.ts`
-- [ ] T020 [US2] Apply `authenticate` middleware to all routes in `src/api/routes/jobs.router.ts`
-- [ ] T021 [US2] Update `createPipeline()` to set `owner_user_id = req.user.id` (and `owner_team_id = null`) when no `teamId` is provided in `src/services/pipeline.service.ts`
-- [ ] T022 [US2] Update `listPipelines()` to add `WHERE owner_user_id = userId` filter (personal scope only; team scope added in US3) in `src/services/pipeline.service.ts`
-- [ ] T023 [US2] Update `getPipeline()`, `updatePipeline()`, `deletePipeline()` to verify `owner_user_id = req.user.id`; return 404 (not 403) when pipeline is inaccessible to prevent enumeration in `src/services/pipeline.service.ts`
-- [ ] T024 [US2] Update all pipeline controller methods to extract and forward `req.user.id` as `userId` context to service calls in `src/api/controllers/pipelines.controller.ts`
-- [ ] T025 [US2] Add optional `teamId` (uuid, nullable) field to `CreatePipelineBodySchema` in `src/api/schemas/pipeline.schema.ts`
-- [ ] T026 [US2] Write integration test: register two users, each creates a pipeline, assert list isolation and 404 on cross-user access in `tests/integration/auth-pipeline-flow.test.ts`
+- [X] T019 [US2] Apply `authenticate` middleware to all routes in `src/api/routes/pipelines.router.ts`
+- [X] T020 [US2] Apply `authenticate` middleware to all routes in `src/api/routes/jobs.router.ts`
+- [X] T021 [US2] Update `createPipeline()` to set `owner_user_id = req.user.id` (and `owner_team_id = null`) when no `teamId` is provided in `src/services/pipeline.service.ts`
+- [X] T022 [US2] Update `listPipelines()` to add `WHERE owner_user_id = userId` filter (personal scope only; team scope added in US3) in `src/services/pipeline.service.ts`
+- [X] T023 [US2] Update `getPipeline()`, `updatePipeline()`, `deletePipeline()` to verify `owner_user_id = req.user.id`; return 404 (not 403) when pipeline is inaccessible to prevent enumeration in `src/services/pipeline.service.ts`
+- [X] T024 [US2] Update all pipeline controller methods to extract and forward `req.user.id` as `userId` context to service calls in `src/api/controllers/pipelines.controller.ts`
+- [X] T025 [US2] Add optional `teamId` (uuid, nullable) field to `CreatePipelineBodySchema` in `src/api/schemas/pipeline.schema.ts`
+- [X] T026 [US2] Write integration test: register two users, each creates a pipeline, assert list isolation and 404 on cross-user access in `tests/integration/auth-pipeline-isolation.test.ts`
 
 **Checkpoint**: Pipelines are scoped per user. Cross-user access returns 404. Unauthenticated requests return 401.
 

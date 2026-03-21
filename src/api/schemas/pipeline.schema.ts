@@ -33,18 +33,21 @@ export const CreatePipelineBodySchema = z.discriminatedUnion('actionType', [
     actionType: z.literal('field_extractor'),
     actionConfig: FieldExtractorConfigSchema,
     subscriberUrls: z.array(z.string().url()).default([]),
+    teamId: z.string().uuid().optional(),
   }),
   z.object({
     name: z.string().min(1),
     actionType: z.literal('payload_filter'),
     actionConfig: PayloadFilterConfigSchema,
     subscriberUrls: z.array(z.string().url()).default([]),
+    teamId: z.string().uuid().optional(),
   }),
   z.object({
     name: z.string().min(1),
     actionType: z.literal('http_enricher'),
     actionConfig: HttpEnricherConfigSchema,
     subscriberUrls: z.array(z.string().url()).default([]),
+    teamId: z.string().uuid().optional(),
   }),
 ]);
 

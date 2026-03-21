@@ -1,4 +1,4 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { config } from '../config.js';
 import { db } from '../db/index.js';
 import { pipelines, subscribers } from '../db/schema.js';
@@ -11,6 +11,8 @@ export interface CreatePipelineInput {
   actionType: ActionType;
   actionConfig: Record<string, unknown>;
   subscriberUrls: string[];
+  ownerUserId: string;
+  ownerTeamId?: string;
 }
 
 export interface UpdatePipelineInput {
@@ -63,6 +65,8 @@ export async function createPipeline(input: CreatePipelineInput) {
         name: input.name,
         actionType: input.actionType,
         actionConfig: input.actionConfig,
+        ownerUserId: input.ownerUserId,
+        ownerTeamId: input.ownerTeamId ?? null,
       })
       .returning();
 
@@ -78,21 +82,29 @@ export async function createPipeline(input: CreatePipelineInput) {
   });
 }
 
-export async function getPipelineById(id: string) {
-  const [pipeline] = await db.select().from(pipelines).where(eq(pipelines.id, id));
+export async function getPipelineById(id: string, ownerUserId: string) {
+  const [pipeline] = await db
+    .select()
+    .from(pipelines)
+    .where(and(eq(pipelines.id, id), eq(pipelines.ownerUserId, ownerUserId)));
   if (!pipeline) throw new NotFoundError('PIPELINE_NOT_FOUND', 'Pipeline not found');
 
   const subs = await db.select().from(subscribers).where(eq(subscribers.pipelineId, id));
   return formatPipeline(pipeline, subs);
 }
 
-export async function listPipelines(page: number, limit: number) {
+export async function listPipelines(page: number, limit: number, ownerUserId: string) {
   const offset = (page - 1) * limit;
+  const ownerFilter = eq(pipelines.ownerUserId, ownerUserId);
 
-  const [{ total }] = await db.select({ total: sql<number>`count(*)::int` }).from(pipelines);
+  const [{ total }] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(pipelines)
+    .where(ownerFilter);
   const rows = await db
     .select()
     .from(pipelines)
+    .where(ownerFilter)
     .orderBy(desc(pipelines.createdAt))
     .limit(limit)
     .offset(offset);
@@ -105,8 +117,11 @@ export async function listPipelines(page: number, limit: number) {
   };
 }
 
-export async function updatePipeline(id: string, input: UpdatePipelineInput) {
-  const [existing] = await db.select().from(pipelines).where(eq(pipelines.id, id));
+export async function updatePipeline(id: string, input: UpdatePipelineInput, ownerUserId: string) {
+  const [existing] = await db
+    .select()
+    .from(pipelines)
+    .where(and(eq(pipelines.id, id), eq(pipelines.ownerUserId, ownerUserId)));
   if (!existing) throw new NotFoundError('PIPELINE_NOT_FOUND', 'Pipeline not found');
 
   return db.transaction(async (tx) => {
@@ -140,8 +155,11 @@ export async function updatePipeline(id: string, input: UpdatePipelineInput) {
   });
 }
 
-export async function deletePipeline(id: string): Promise<void> {
-  const [existing] = await db.select().from(pipelines).where(eq(pipelines.id, id));
+export async function deletePipeline(id: string, ownerUserId: string): Promise<void> {
+  const [existing] = await db
+    .select()
+    .from(pipelines)
+    .where(and(eq(pipelines.id, id), eq(pipelines.ownerUserId, ownerUserId)));
   if (!existing) throw new NotFoundError('PIPELINE_NOT_FOUND', 'Pipeline not found');
   await db.delete(pipelines).where(eq(pipelines.id, id));
 }

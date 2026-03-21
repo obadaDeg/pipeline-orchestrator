@@ -14,6 +14,6 @@ export async function runTestMigrations(): Promise<void> {
 
 export async function truncateAllTables(): Promise<void> {
   await testPool.query(
-    'TRUNCATE TABLE delivery_attempts, jobs, subscribers, pipelines RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE delivery_attempts, jobs, subscribers, pipelines, team_memberships, audit_events, api_keys, teams, users RESTART IDENTITY CASCADE',
   );
 }
