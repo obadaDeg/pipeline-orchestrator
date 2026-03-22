@@ -31,6 +31,7 @@ export const auditEventTypeEnum = pgEnum('audit_event_type', [
   'TEAM_MEMBER_ADDED',
   'TEAM_MEMBER_REMOVED',
   'USER_REGISTERED',
+  'SIGNATURE_FAILED',
 ]);
 
 // ─── users ────────────────────────────────────────────────────────────────────
@@ -234,5 +235,29 @@ export const deliveryAttempts = pgTable(
       table.subscriberId,
       table.attemptNumber,
     ),
+  }),
+);
+
+// ─── pipeline_signing_secrets ──────────────────────────────────────────────────
+
+export const pipelineSigningSecrets = pgTable(
+  'pipeline_signing_secrets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    pipelineId: uuid('pipeline_id')
+      .notNull()
+      .references(() => pipelines.id, { onDelete: 'cascade' }),
+    /**
+     * The raw signing secret. HMAC verification requires the original key,
+     * so it cannot be hashed. High-entropy (256-bit) random secrets are safe
+     * to store directly — no adaptive hash needed (unlike passwords).
+     */
+    secretValue: text('secret_value').notNull(),
+    /** First 6 characters of the raw secret — stored for display identification. */
+    secretHint: text('secret_hint').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    pipelineIdIdx: uniqueIndex('idx_pipeline_signing_secrets_pipeline_id').on(table.pipelineId),
   }),
 );
