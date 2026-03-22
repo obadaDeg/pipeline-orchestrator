@@ -1,0 +1,27 @@
+{
+  "version": "6",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1773553834385,
+      "tag": "0000_narrow_cerise",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1774013409635,
+      "tag": "0001_lush_steel_serpent",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1774143903521,
+      "tag": "0002_blue_war_machine",
+      "breakpoints": true
+    }
+  ]
+}
