@@ -51,8 +51,8 @@ describe('Pipeline E2E', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: 'e2e@example.com', password: 'password123' }),
     });
-    const body = (await res.json()) as { data: { apiKey: string } };
-    apiKey = body.data.apiKey;
+    const body = (await res.json()) as { data: { apiKey: { key: string } } };
+    apiKey = body.data.apiKey.key;
   });
 
   async function pollJobStatus(
@@ -61,7 +61,9 @@ describe('Pipeline E2E', () => {
   ): Promise<{ status: string; [key: string]: unknown }> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
-      const res = await fetch(`${baseUrl}/jobs/${jobId}`);
+      const res = await fetch(`${baseUrl}/jobs/${jobId}`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
       const body = (await res.json()) as { data: { status: string } };
       if (body.data.status === 'COMPLETED' || body.data.status === 'FAILED') {
         return body.data;
@@ -113,7 +115,9 @@ describe('Pipeline E2E', () => {
     expect(job.status).toBe('COMPLETED');
 
     // Verify delivery attempt was recorded as SUCCESS
-    const attemptsRes = await fetch(`${baseUrl}/jobs/${jobRef.jobId}/delivery-attempts`);
+    const attemptsRes = await fetch(`${baseUrl}/jobs/${jobRef.jobId}/delivery-attempts`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
     expect(attemptsRes.status).toBe(200);
     const { data: attemptsData } = (await attemptsRes.json()) as {
       data: { items: Array<{ outcome: string }> };
@@ -158,7 +162,9 @@ describe('Pipeline E2E', () => {
     const job = await pollJobStatus(jobRef.jobId, 30000);
     expect(job.status).toBe('FAILED');
 
-    const attemptsRes = await fetch(`${baseUrl}/jobs/${jobRef.jobId}/delivery-attempts`);
+    const attemptsRes = await fetch(`${baseUrl}/jobs/${jobRef.jobId}/delivery-attempts`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
     const { data: attemptsData } = (await attemptsRes.json()) as {
       data: { items: Array<{ outcome: string }> };
     };

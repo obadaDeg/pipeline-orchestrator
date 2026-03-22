@@ -16,7 +16,7 @@ describe('Pipeline ownership isolation', () => {
   }, 15000);
 
   afterAll(async () => {
-    await new Promise<void>((resolve, reject) =>
+    if (httpServer) await new Promise<void>((resolve, reject) =>
       httpServer.close((err) => (err ? reject(err) : resolve())),
     );
     await testPool.end();
@@ -33,8 +33,8 @@ describe('Pipeline ownership isolation', () => {
       body: JSON.stringify({ email, password }),
     });
     expect(res.status).toBe(201);
-    const body = (await res.json()) as { data: { apiKey: string } };
-    return body.data.apiKey;
+    const body = (await res.json()) as { data: { apiKey: { key: string } } };
+    return body.data.apiKey.key;
   }
 
   async function createPipeline(apiKey: string, name: string): Promise<{ id: string }> {

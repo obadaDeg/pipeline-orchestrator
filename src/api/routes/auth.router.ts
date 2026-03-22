@@ -8,11 +8,14 @@ import { CreateApiKeyBodySchema, LoginBodySchema, RegisterBodySchema } from '../
 export const authRouter = Router();
 
 // Rate limiting — prevent credential stuffing on public auth endpoints
+const isTestEnv = process.env.NODE_ENV === 'test';
+
 const registerLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => isTestEnv,
   message: { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many registration attempts. Try again in 15 minutes.' } },
 });
 
@@ -21,6 +24,7 @@ const loginLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => isTestEnv,
   message: { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many login attempts. Try again in 15 minutes.' } },
 });
 

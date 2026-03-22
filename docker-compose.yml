@@ -40,7 +40,7 @@ services:
     build: .
     command: ["node", "dist/api/index.js"]
     ports:
-      - "3000:3000"
+      - "4000:3000"
     environment:
       NODE_ENV: production
       PORT: 3000

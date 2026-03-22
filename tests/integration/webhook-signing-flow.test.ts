@@ -28,7 +28,7 @@ describe('Webhook Signing Flow (integration)', () => {
   }, 15000);
 
   afterAll(async () => {
-    await new Promise<void>((resolve, reject) =>
+    if (httpServer) await new Promise<void>((resolve, reject) =>
       httpServer.close((err) => (err ? reject(err) : resolve())),
     );
     await testPool.end();
@@ -47,8 +47,8 @@ describe('Webhook Signing Flow (integration)', () => {
       body: JSON.stringify({ email, password: 'password123' }),
     });
     expect(res.status).toBe(201);
-    const body = (await res.json()) as { data: { apiKey: string } };
-    return body.data.apiKey;
+    const body = (await res.json()) as { data: { apiKey: { key: string } } };
+    return body.data.apiKey.key;
   }
 
   async function createPipeline(apiKey: string): Promise<{ id: string; sourceId: string }> {
