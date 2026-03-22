@@ -1,0 +1,243 @@
+openapi: "3.1.0"
+info:
+  title: Webhook Signing Secret API
+  version: "1.0.0"
+  description: >
+    API contracts for managing per-pipeline webhook signing secrets.
+    All endpoints require Bearer API key authentication.
+
+paths:
+  /pipelines/{id}/signing-secret:
+    get:
+      summary: Get signing secret status
+      description: >
+        Returns whether a signing secret is active for this pipeline,
+        along with the masked hint. Never returns the full secret.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Signing secret status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      active:
+                        type: boolean
+                      hint:
+                        type: string
+                        description: First 6 characters of the secret, e.g. "whsec_"
+                        nullable: true
+                      createdAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+              example:
+                data:
+                  active: true
+                  hint: "whsec_"
+                  createdAt: "2026-03-21T10:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    post:
+      summary: Generate or rotate signing secret
+      description: >
+        Generates a new signing secret for this pipeline. If a secret already exists,
+        it is immediately replaced (rotated). The full secret value is returned ONCE
+        in this response and is never retrievable again.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "201":
+          description: Secret generated or rotated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      secret:
+                        type: string
+                        description: >
+                          Full signing secret. Store this immediately — it will not be
+                          shown again.
+                        example: "whsec_3q2-9mNt8..."
+                      hint:
+                        type: string
+                        description: First 6 characters for display purposes
+                        example: "whsec_"
+                      createdAt:
+                        type: string
+                        format: date-time
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      summary: Revoke signing secret
+      description: >
+        Removes the signing secret from this pipeline. The pipeline reverts to
+        open (accept-all) mode immediately.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Secret revoked; pipeline is now open
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: No active signing secret exists for this pipeline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error:
+                  code: "NO_ACTIVE_SECRET"
+                  message: "This pipeline does not have an active signing secret"
+
+  /webhook/{sourceId}:
+    post:
+      summary: Ingest webhook (with optional signature verification)
+      description: >
+        Ingests an incoming webhook. If the pipeline has an active signing secret,
+        the request MUST include valid signature and timestamp headers. Invalid or
+        missing headers result in 401. Pipelines without a secret accept all requests.
+      parameters:
+        - name: sourceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: X-Webhook-Signature
+          in: header
+          required: false
+          description: >
+            HMAC-SHA256 signature of "${X-Webhook-Timestamp}.${rawBody}".
+            Format: "sha256=<hex-digest>"
+          schema:
+            type: string
+            example: "sha256=abc123..."
+        - name: X-Webhook-Timestamp
+          in: header
+          required: false
+          description: >
+            Unix timestamp (seconds) at which the request was signed.
+            Must be within 5 minutes of server time.
+          schema:
+            type: string
+            example: "1742558400"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Any valid JSON payload
+      responses:
+        "202":
+          description: Webhook accepted and enqueued for processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      jobId:
+                        type: string
+                        format: uuid
+        "401":
+          description: >
+            Signature verification failed. The pipeline has a signing secret and the
+            request was unsigned, had an invalid signature, or had an expired timestamp.
+            The response does NOT reveal which condition caused the rejection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error:
+                  code: "UNAUTHORIZED"
+                  message: "Webhook signature verification failed"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Authenticated but not authorised for this resource
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
