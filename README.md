@@ -4,9 +4,19 @@ A webhook-driven task processing platform. Receive webhooks, transform payloads,
 
 ## Quick Start
 
+### Production / demo
+
 ```bash
-# Start infrastructure (Postgres on :5433, Redis on :6379)
 docker compose up -d
+```
+
+That's it. Docker Compose builds the image, runs migrations, and starts the API (`http://localhost:4000`) and background worker. All services are health-checked so the API only starts after Postgres is ready and migrations complete.
+
+### Local development
+
+```bash
+# Start infrastructure only (Postgres on :5433, Redis on :6379)
+docker compose up -d postgres redis
 
 # Install dependencies
 npm install
@@ -14,8 +24,8 @@ npm install
 # Run migrations
 npm run db:migrate
 
-# Start API server and worker
-npm run dev
+# Start API server and worker (with hot-reload)
+npm run dev        # API on :3000
 npm run worker
 ```
 
@@ -232,6 +242,48 @@ curl -X DELETE http://localhost:3000/pipelines/{pipelineId}/signing-secret \
 ```
 
 After revocation the pipeline reverts to open mode and accepts all unsigned webhooks. Returns `422` if no secret is active.
+
+---
+
+## Architecture & Design Decisions
+
+### System overview
+
+The platform is split into two processes that communicate through a Redis-backed queue:
+
+![High-Level Architecture](docs/High-Level%20Architecture/High-Level%20Architecture.png)
+
+**Delivery sequence:**
+
+![Sequence Diagram](docs/High-Level%20Architecture/SequenceDiagram.svg)
+
+The API process never waits for delivery. It persists the job, enqueues a task, and returns `202` immediately. The worker is the only component that performs delivery and retries.
+
+### Key design decisions
+
+**BullMQ + Redis for the job queue**
+BullMQ provides durable, ordered job storage with built-in retry and exponential backoff. Jobs survive process restarts. Redis is already required for queue operation so there is no additional infrastructure dependency.
+
+**PostgreSQL + Drizzle ORM**
+All business state lives in Postgres. Drizzle provides compile-time type safety for queries and generates SQL migration files that are committed to the repo and applied deterministically at startup — both in development and CI.
+
+**API key authentication (not JWT)**
+API keys are stateless bearer tokens that can be revoked instantly. There is no refresh-token complexity or short expiry dance. Each key is hashed with Argon2 at rest; only a non-reversible prefix hint is stored in plaintext. A user may hold up to 10 active keys simultaneously to support key rotation without downtime.
+
+**HMAC-SHA256 webhook signatures**
+The signing scheme follows the same pattern used by Stripe and GitHub: `sha256=HMAC(secret, "<timestamp>.<body>")`. Including the timestamp in the signed payload provides replay-attack protection (5-minute window enforced server-side). The secret is generated once, shown once, and only a 6-character hint is stored — the server stores the secret in plaintext only for the duration of the HTTP response.
+
+**404 instead of 403 for cross-user access**
+Returning `404` when a user requests another user's pipeline prevents resource enumeration. An attacker who guesses a pipeline UUID gets no confirmation that it exists.
+
+**Fire-and-forget audit events**
+Audit events are written with `.catch(() => {})` so that a logging failure never blocks the main operation. Auditability is valuable but must not degrade availability.
+
+**Argon2 for passwords**
+Argon2id is memory-hard and resistant to GPU brute-force attacks. It is the current OWASP-recommended algorithm for password hashing.
+
+**Single-table-per-concern schema**
+Each domain concept (`users`, `api_keys`, `pipelines`, `jobs`, `delivery_attempts`, `pipeline_signing_secrets`, `audit_events`, `teams`, `team_memberships`) has its own table. No polymorphic columns or JSON blobs for structured data that needs to be queried.
 
 ---
 
