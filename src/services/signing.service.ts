@@ -8,6 +8,7 @@ import {
   generateSigningSecret,
   verifyHmac,
 } from '../lib/signing-secret.js';
+import { emitAuditEvent } from './auth.service.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -91,22 +92,26 @@ export async function verifyWebhookSignature(
 
   // Secret is configured — both headers are required.
   if (!signatureHeader || !timestampHeader) {
+    emitAuditEvent(null, 'SIGNATURE_FAILED', { pipelineId, reason: 'missing_headers' }).catch(() => {});
     throw new UnauthorizedError('Webhook signature verification failed');
   }
 
   // Validate timestamp to prevent replay attacks.
   const timestampMs = parseInt(timestampHeader, 10) * 1000;
   if (isNaN(timestampMs)) {
+    emitAuditEvent(null, 'SIGNATURE_FAILED', { pipelineId, reason: 'invalid_timestamp' }).catch(() => {});
     throw new UnauthorizedError('Webhook signature verification failed');
   }
 
   const drift = Date.now() - timestampMs;
   if (drift > TIMESTAMP_TOLERANCE_MS || drift < -FUTURE_TOLERANCE_MS) {
+    emitAuditEvent(null, 'SIGNATURE_FAILED', { pipelineId, reason: 'timestamp_out_of_range' }).catch(() => {});
     throw new UnauthorizedError('Webhook signature verification failed');
   }
 
   const valid = verifyHmac(row.secretValue, timestampHeader, rawBody, signatureHeader);
   if (!valid) {
+    emitAuditEvent(null, 'SIGNATURE_FAILED', { pipelineId, reason: 'hmac_mismatch' }).catch(() => {});
     throw new UnauthorizedError('Webhook signature verification failed');
   }
 }

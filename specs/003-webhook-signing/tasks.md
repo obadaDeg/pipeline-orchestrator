@@ -68,8 +68,8 @@
 
 **Independent Test**: Generate a secret, sign and send a webhook → 202. Call `POST /signing-secret` again (rotate). Send a webhook signed with the old secret → 401. Send a webhook signed with the new secret → 202.
 
-- [ ] T016 [US3] Confirm `createOrRotateSecret()` in `src/services/signing.service.ts` uses `DELETE WHERE pipeline_id = :id` before `INSERT` (not an upsert that leaves the old hash in place) — update if needed
-- [ ] T017 [P] [US3] Extend `tests/unit/signing/signing-service.test.ts` — call `createOrRotateSecret` twice for same pipeline; assert second call returns a different secret; assert first secret hash no longer exists in DB (or mock verifies delete was called)
+- [X] T016 [US3] Confirm `createOrRotateSecret()` in `src/services/signing.service.ts` uses `DELETE WHERE pipeline_id = :id` before `INSERT` (not an upsert that leaves the old hash in place) — update if needed
+- [X] T017 [P] [US3] Extend `tests/unit/signing/signing-service.test.ts` — call `createOrRotateSecret` twice for same pipeline; assert second call returns a different secret; assert first secret hash no longer exists in DB (or mock verifies delete was called)
 
 **Checkpoint**: US3 complete — rotation immediately invalidates the previous secret.
 
@@ -81,10 +81,10 @@
 
 **Independent Test**: Generate a secret. `DELETE /signing-secret` → 204. Send unsigned webhook → 202.
 
-- [ ] T018 [US4] Add `revokeSecret(pipelineId: string): Promise<void>` to `src/services/signing.service.ts` — deletes the `pipeline_signing_secrets` row; throws `UnprocessableEntityError` (422) if no active secret exists
-- [ ] T019 [P] [US4] Add `revokeHandler` to `src/api/controllers/signing.controller.ts` — calls `revokeSecret()`, returns 204 on success; error handler surfaces 422 if no secret
-- [ ] T020 [US4] Add `DELETE /pipelines/:id/signing-secret` route to `src/api/routes/pipelines.router.ts` — protected by `authenticate` + ownership check
-- [ ] T021 [P] [US4] Extend `tests/unit/signing/signing-service.test.ts` — `revokeSecret` deletes row; subsequent `getSecretStatus` returns active=false; `revokeSecret` with no secret throws 422; `verifyWebhookSignature` after revocation is a no-op (passes unsigned requests)
+- [X] T018 [US4] Add `revokeSecret(pipelineId: string): Promise<void>` to `src/services/signing.service.ts` — deletes the `pipeline_signing_secrets` row; throws `UnprocessableEntityError` (422) if no active secret exists
+- [X] T019 [P] [US4] Add `revokeHandler` to `src/api/controllers/signing.controller.ts` — calls `revokeSecret()`, returns 204 on success; error handler surfaces 422 if no secret
+- [X] T020 [US4] Add `DELETE /pipelines/:id/signing-secret` route to `src/api/routes/pipelines.router.ts` — protected by `authenticate` + ownership check
+- [X] T021 [P] [US4] Extend `tests/unit/signing/signing-service.test.ts` — `revokeSecret` deletes row; subsequent `getSecretStatus` returns active=false; `revokeSecret` with no secret throws 422; `verifyWebhookSignature` after revocation is a no-op (passes unsigned requests)
 
 **Checkpoint**: US4 complete — full secret lifecycle (generate → rotate → revoke) operational.
 
@@ -94,10 +94,10 @@
 
 **Purpose**: Audit trail, end-to-end integration test, lint/typecheck, README.
 
-- [ ] T022 Add fire-and-forget `SIGNATURE_FAILED` audit event emission inside `verifyWebhookSignature()` in `src/services/signing.service.ts` — call `emitAuditEvent({ userId: null, eventType: 'SIGNATURE_FAILED', metadata: { pipelineId, reason } })` wrapped in `.catch(() => {})` to avoid blocking ingestion
-- [ ] T023 Write integration test in `tests/integration/webhook-signing-flow.test.ts` — register user, create pipeline, generate secret, send signed webhook → 202, send unsigned webhook → 401, send request with expired timestamp → 401, rotate secret, send webhook with old secret → 401, send webhook with new secret → 202, revoke secret, send unsigned → 202
-- [ ] T024 Run `npm test && npm run lint` — resolve all type errors, lint violations, and test failures
-- [ ] T025 Update `README.md` — add "Webhook Signature Verification" section covering: what it is, how to generate a secret, the signing algorithm (`sha256=HMAC(secret, "${timestamp}.${body}")`), Node.js sender example, and rotation/revocation instructions
+- [X] T022 Add fire-and-forget `SIGNATURE_FAILED` audit event emission inside `verifyWebhookSignature()` in `src/services/signing.service.ts` — call `emitAuditEvent({ userId: null, eventType: 'SIGNATURE_FAILED', metadata: { pipelineId, reason } })` wrapped in `.catch(() => {})` to avoid blocking ingestion
+- [X] T023 Write integration test in `tests/integration/webhook-signing-flow.test.ts` — register user, create pipeline, generate secret, send signed webhook → 202, send unsigned webhook → 401, send request with expired timestamp → 401, rotate secret, send webhook with old secret → 401, send webhook with new secret → 202, revoke secret, send unsigned → 202
+- [X] T024 Run `npm test && npm run lint` — resolve all type errors, lint violations, and test failures
+- [X] T025 Update `README.md` — add "Webhook Signature Verification" section covering: what it is, how to generate a secret, the signing algorithm (`sha256=HMAC(secret, "${timestamp}.${body}")`), Node.js sender example, and rotation/revocation instructions
 
 ---
 

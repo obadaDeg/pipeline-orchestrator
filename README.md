@@ -155,7 +155,83 @@ curl "http://localhost:3000/auth/audit-log?page=1&limit=20" \
   -H "Authorization: Bearer $API_KEY"
 ```
 
-Events recorded: `USER_REGISTERED`, `KEY_CREATED`, `KEY_REVOKED`, `AUTH_FAILED`, `TEAM_CREATED`, `TEAM_DELETED`, `TEAM_MEMBER_ADDED`, `TEAM_MEMBER_REMOVED`.
+Events recorded: `USER_REGISTERED`, `KEY_CREATED`, `KEY_REVOKED`, `AUTH_FAILED`, `TEAM_CREATED`, `TEAM_DELETED`, `TEAM_MEMBER_ADDED`, `TEAM_MEMBER_REMOVED`, `SIGNATURE_FAILED`.
+
+---
+
+## Webhook Signature Verification
+
+Pipeline owners can require that incoming webhooks are signed with an HMAC-SHA256 secret. Pipelines without a secret remain open (accept all requests). Enabling a secret is opt-in and takes effect immediately.
+
+### How it works
+
+Senders sign requests using a shared secret:
+
+```
+Signed message = "<unix-timestamp-seconds>.<raw-body>"
+Header: X-Webhook-Signature: sha256=<hex-digest>
+Header: X-Webhook-Timestamp: <unix-timestamp-seconds>
+```
+
+The server rejects requests where the HMAC does not match, the timestamp is missing or unparseable, the timestamp is more than **5 minutes in the past** (replay attack prevention), or the timestamp is more than **1 minute in the future** (clock skew limit).
+
+### Generate a signing secret
+
+```bash
+curl -X POST http://localhost:3000/pipelines/{pipelineId}/signing-secret \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+Response includes `data.secret` — **save it now, it is only shown once**. The `hint` field (first 6 characters) is stored and displayed on subsequent status requests.
+
+### Send a signed webhook (Node.js example)
+
+```js
+import { createHmac } from 'node:crypto';
+
+const secret = 'whsec_...'; // from generate response
+const body = JSON.stringify({ event: 'order.created', id: '123' });
+const timestamp = String(Math.floor(Date.now() / 1000));
+const signature = 'sha256=' + createHmac('sha256', secret)
+  .update(`${timestamp}.${body}`)
+  .digest('hex');
+
+await fetch('https://your-host/webhooks/{sourceId}', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Webhook-Signature': signature,
+    'X-Webhook-Timestamp': timestamp,
+  },
+  body,
+});
+```
+
+### Check secret status
+
+```bash
+GET /pipelines/{id}/signing-secret
+# → { data: { active: true, hint: "whsec_", createdAt: "..." } }
+```
+
+### Rotate the secret
+
+Calling `POST /pipelines/:id/signing-secret` again generates a new secret and **immediately invalidates the old one** — there is no overlap window.
+
+```bash
+curl -X POST http://localhost:3000/pipelines/{pipelineId}/signing-secret \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+### Revoke (disable verification)
+
+```bash
+curl -X DELETE http://localhost:3000/pipelines/{pipelineId}/signing-secret \
+  -H "Authorization: Bearer $API_KEY"
+# → 204 No Content
+```
+
+After revocation the pipeline reverts to open mode and accepts all unsigned webhooks. Returns `422` if no secret is active.
 
 ---
 

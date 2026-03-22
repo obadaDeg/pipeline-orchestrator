@@ -36,27 +36,46 @@ afterEach(() => {
 // ─── createOrRotateSecret ──────────────────────────────────────────────────────
 
 describe('createOrRotateSecret', () => {
-  it('deletes the old secret and inserts a new one inside a transaction', async () => {
-    const generated = { secret: 'whsec_newraw', secretHint: 'whsec_' };
-    mockGenerate.mockReturnValue(generated);
-
-    const newRow = { secretHint: 'whsec_', createdAt: new Date('2026-03-21') };
-
-    mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
-      const tx = {
-        delete: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
-        insert: vi.fn().mockReturnValue({
-          values: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([newRow]) }),
-        }),
-      };
-      return cb(tx);
+  function makeTxMock(returnedRow: object) {
+    const deleteMock = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
+    const insertMock = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([returnedRow]) }),
     });
+    const tx = { delete: deleteMock, insert: insertMock };
+    mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(tx));
+    return tx;
+  }
+
+  it('deletes the old secret and inserts a new one inside a transaction', async () => {
+    mockGenerate.mockReturnValue({ secret: 'whsec_newraw', secretHint: 'whsec_' });
+    makeTxMock({ secretHint: 'whsec_', createdAt: new Date('2026-03-21') });
 
     const result = await createOrRotateSecret('pipeline-123');
 
     expect(result.secret).toBe('whsec_newraw');
     expect(result.hint).toBe('whsec_');
     expect(result.createdAt).toEqual(new Date('2026-03-21'));
+  });
+
+  it('calls delete before insert on every invocation (rotation replaces previous secret)', async () => {
+    // First call
+    mockGenerate.mockReturnValueOnce({ secret: 'whsec_first', secretHint: 'whsec_' });
+    const tx1 = makeTxMock({ secretHint: 'whsec_', createdAt: new Date('2026-03-21T10:00:00Z') });
+    const first = await createOrRotateSecret('pipeline-123');
+
+    // Second call (rotation)
+    mockGenerate.mockReturnValueOnce({ secret: 'whsec_second', secretHint: 'whsec_' });
+    const tx2 = makeTxMock({ secretHint: 'whsec_', createdAt: new Date('2026-03-21T10:05:00Z') });
+    const second = await createOrRotateSecret('pipeline-123');
+
+    // Secrets must differ
+    expect(first.secret).not.toBe(second.secret);
+    expect(first.secret).toBe('whsec_first');
+    expect(second.secret).toBe('whsec_second');
+
+    // Both calls must have invoked delete (ensuring the old row is cleared)
+    expect(tx1.delete).toHaveBeenCalledOnce();
+    expect(tx2.delete).toHaveBeenCalledOnce();
   });
 });
 
@@ -204,5 +223,22 @@ describe('revokeSecret', () => {
       statusCode: 422,
       code: 'NO_ACTIVE_SECRET',
     });
+  });
+
+  it('pipeline reverts to open mode — verifyWebhookSignature is a no-op after revocation', async () => {
+    // After revoking, the DB has no row → select returns []
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+    } as unknown as ReturnType<typeof mockDb.select>);
+
+    // Should pass without checking HMAC (no secret configured)
+    await expect(
+      verifyWebhookSignature('pipeline-123', undefined, undefined, 'body'),
+    ).resolves.toBeUndefined();
+    expect(mockVerifyHmac).not.toHaveBeenCalled();
   });
 });
