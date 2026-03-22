@@ -12,6 +12,7 @@ describe('Pipeline E2E', () => {
   let httpServer: ReturnType<typeof createServer>;
   let worker: Worker;
   let mockServer: Awaited<ReturnType<typeof createMockServer>>;
+  let apiKey: string;
 
   beforeAll(async () => {
     await runTestMigrations();
@@ -43,6 +44,15 @@ describe('Pipeline E2E', () => {
   beforeEach(async () => {
     await truncateAllTables();
     mockServer.reset();
+
+    // Register a fresh user for each test
+    const res = await fetch(`${baseUrl}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'e2e@example.com', password: 'password123' }),
+    });
+    const body = (await res.json()) as { data: { apiKey: string } };
+    apiKey = body.data.apiKey;
   });
 
   async function pollJobStatus(
@@ -65,7 +75,10 @@ describe('Pipeline E2E', () => {
     // Create pipeline via REST API
     const createRes = await fetch(`${baseUrl}/pipelines`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
         name: 'E2E Test Pipeline',
         actionType: 'field_extractor',
@@ -85,7 +98,7 @@ describe('Pipeline E2E', () => {
     const sourceId = pipeline.sourceUrl.split('/webhooks/')[1];
     expect(sourceId).toBeDefined();
 
-    // POST webhook to ingestion endpoint
+    // POST webhook to ingestion endpoint (no auth needed — public ingestion URL)
     const webhookRes = await fetch(`${baseUrl}/webhooks/${sourceId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -119,7 +132,10 @@ describe('Pipeline E2E', () => {
 
     const createRes = await fetch(`${baseUrl}/pipelines`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
         name: 'Failing Pipeline',
         actionType: 'field_extractor',

@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run tests/unit",
     "test:watch": "vitest",
-    "test:integration": "vitest run tests/integration",
+    "test:integration": "vitest run tests/integration --fileParallelism=false",
     "test:all": "vitest run"
   },
   "dependencies": {
