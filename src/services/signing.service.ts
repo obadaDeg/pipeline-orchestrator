@@ -2,7 +2,12 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { pipelineSigningSecrets } from '../db/schema.js';
 import { AppError, UnauthorizedError } from '../lib/errors.js';
-import { generateSigningSecret, verifyHmac } from '../lib/signing-secret.js';
+import {
+  FUTURE_TOLERANCE_MS,
+  TIMESTAMP_TOLERANCE_MS,
+  generateSigningSecret,
+  verifyHmac,
+} from '../lib/signing-secret.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -86,6 +91,17 @@ export async function verifyWebhookSignature(
 
   // Secret is configured — both headers are required.
   if (!signatureHeader || !timestampHeader) {
+    throw new UnauthorizedError('Webhook signature verification failed');
+  }
+
+  // Validate timestamp to prevent replay attacks.
+  const timestampMs = parseInt(timestampHeader, 10) * 1000;
+  if (isNaN(timestampMs)) {
+    throw new UnauthorizedError('Webhook signature verification failed');
+  }
+
+  const drift = Date.now() - timestampMs;
+  if (drift > TIMESTAMP_TOLERANCE_MS || drift < -FUTURE_TOLERANCE_MS) {
     throw new UnauthorizedError('Webhook signature verification failed');
   }
 

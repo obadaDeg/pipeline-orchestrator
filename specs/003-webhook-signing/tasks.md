@@ -35,14 +35,14 @@
 
 **Independent Test**: `POST /pipelines/:id/signing-secret` returns the full secret once. `POST /webhook/:sourceId` with a valid signature is accepted (202). The same endpoint with no signature headers returns 401. A pipeline with no secret continues to return 202 for unsigned webhooks.
 
-- [ ] T005 [US1] Create `src/services/signing.service.ts` — export `createOrRotateSecret(pipelineId: string): Promise<{ secret: string; hint: string; createdAt: Date }>` (deletes any existing row, inserts new one) and `getSecretStatus(pipelineId: string): Promise<{ active: boolean; hint: string | null; createdAt: Date | null }>`
-- [ ] T006 [US1] Add `verifyWebhookSignature(pipelineId: string, signatureHeader: string | undefined, timestampHeader: string | undefined, rawBody: string): Promise<void>` to `src/services/signing.service.ts` — looks up active secret; if none, returns immediately; if present, validates headers and HMAC (throws `UnauthorizedError` on failure)
-- [ ] T007 [US1] Update `ingestWebhook(sourceId, rawBody, signatureHeader?, timestampHeader?)` in `src/services/ingestion.service.ts` — call `verifyWebhookSignature()` immediately after pipeline lookup, before any DB write
-- [ ] T008 [US1] Update `src/api/controllers/webhooks.controller.ts` to extract `X-Webhook-Signature` and `X-Webhook-Timestamp` request headers and pass them to `ingestWebhook()`
-- [ ] T009 [P] [US1] Create `src/api/controllers/signing.controller.ts` — export `generateOrRotateHandler` (calls `createOrRotateSecret`, returns 201 `{ data: { secret, hint, createdAt } }`) and `getStatusHandler` (calls `getSecretStatus`, returns 200 `{ data: { active, hint, createdAt } }`)
-- [ ] T010 [US1] Add `POST /pipelines/:id/signing-secret` and `GET /pipelines/:id/signing-secret` routes to `src/api/routes/pipelines.router.ts` — both protected by `authenticate` middleware and pipeline ownership check (404 for non-owner, consistent with existing pipeline routes)
-- [ ] T011 [P] [US1] Write unit tests in `tests/unit/signing/signing-secret.test.ts` — `generateSigningSecret` format and uniqueness, `hashSecret` determinism, `verifyHmac` accepts valid, rejects tampered body, rejects tampered timestamp
-- [ ] T012 [P] [US1] Write unit tests in `tests/unit/signing/signing-service.test.ts` — `createOrRotateSecret` creates row and returns full secret once, `getSecretStatus` returns active=true with hint, getSecretStatus returns active=false when no row, `verifyWebhookSignature` passes for valid signature, throws for invalid signature, passes (no-op) when no secret configured
+- [X] T005 [US1] Create `src/services/signing.service.ts` — export `createOrRotateSecret(pipelineId: string): Promise<{ secret: string; hint: string; createdAt: Date }>` (deletes any existing row, inserts new one) and `getSecretStatus(pipelineId: string): Promise<{ active: boolean; hint: string | null; createdAt: Date | null }>`
+- [X] T006 [US1] Add `verifyWebhookSignature(pipelineId: string, signatureHeader: string | undefined, timestampHeader: string | undefined, rawBody: string): Promise<void>` to `src/services/signing.service.ts` — looks up active secret; if none, returns immediately; if present, validates headers and HMAC (throws `UnauthorizedError` on failure)
+- [X] T007 [US1] Update `ingestWebhook(sourceId, rawBody, signatureHeader?, timestampHeader?)` in `src/services/ingestion.service.ts` — call `verifyWebhookSignature()` immediately after pipeline lookup, before any DB write
+- [X] T008 [US1] Update `src/api/controllers/webhooks.controller.ts` to extract `X-Webhook-Signature` and `X-Webhook-Timestamp` request headers and pass them to `ingestWebhook()`
+- [X] T009 [P] [US1] Create `src/api/controllers/signing.controller.ts` — export `generateOrRotateHandler` (calls `createOrRotateSecret`, returns 201 `{ data: { secret, hint, createdAt } }`) and `getStatusHandler` (calls `getSecretStatus`, returns 200 `{ data: { active, hint, createdAt } }`)
+- [X] T010 [US1] Add `POST /pipelines/:id/signing-secret` and `GET /pipelines/:id/signing-secret` routes to `src/api/routes/pipelines.router.ts` — both protected by `authenticate` middleware and pipeline ownership check (404 for non-owner, consistent with existing pipeline routes)
+- [X] T011 [P] [US1] Write unit tests in `tests/unit/signing/signing-secret.test.ts` — `generateSigningSecret` format and uniqueness, `hashSecret` determinism, `verifyHmac` accepts valid, rejects tampered body, rejects tampered timestamp
+- [X] T012 [P] [US1] Write unit tests in `tests/unit/signing/signing-service.test.ts` — `createOrRotateSecret` creates row and returns full secret once, `getSecretStatus` returns active=true with hint, getSecretStatus returns active=false when no row, `verifyWebhookSignature` passes for valid signature, throws for invalid signature, passes (no-op) when no secret configured
 
 **Checkpoint**: US1 fully functional — secret generation, enforcement on ingestion, open pipeline behaviour unchanged.
 
@@ -54,9 +54,9 @@
 
 **Independent Test**: Send a correctly signed request with a timestamp 6 minutes in the past → 401. Send the same request with a fresh timestamp → 202. Send with a timestamp 2 minutes in the future → 401.
 
-- [ ] T013 [US2] Extract `TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000` and `FUTURE_TOLERANCE_MS = 60 * 1000` as named constants in `src/lib/signing-secret.ts`
-- [ ] T014 [US2] Add timestamp validation inside `verifyWebhookSignature()` in `src/services/signing.service.ts` — parse timestamp header as integer (reject if NaN), reject if `|Date.now() - timestampMs| > TIMESTAMP_TOLERANCE_MS`, reject if `timestampMs > Date.now() + FUTURE_TOLERANCE_MS`
-- [ ] T015 [P] [US2] Extend `tests/unit/signing/signing-service.test.ts` — timestamp missing → throws, timestamp NaN → throws, timestamp > 5 min past → throws, timestamp 1 sec past → passes, timestamp > 1 min future → throws, timestamp 30 sec future → passes
+- [X] T013 [US2] Extract `TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000` and `FUTURE_TOLERANCE_MS = 60 * 1000` as named constants in `src/lib/signing-secret.ts`
+- [X] T014 [US2] Add timestamp validation inside `verifyWebhookSignature()` in `src/services/signing.service.ts` — parse timestamp header as integer (reject if NaN), reject if `|Date.now() - timestampMs| > TIMESTAMP_TOLERANCE_MS`, reject if `timestampMs > Date.now() + FUTURE_TOLERANCE_MS`
+- [X] T015 [P] [US2] Extend `tests/unit/signing/signing-service.test.ts` — timestamp missing → throws, timestamp NaN → throws, timestamp > 5 min past → throws, timestamp 1 sec past → passes, timestamp > 1 min future → throws, timestamp 30 sec future → passes
 
 **Checkpoint**: US2 complete — replay attacks via stale timestamps are rejected.
 

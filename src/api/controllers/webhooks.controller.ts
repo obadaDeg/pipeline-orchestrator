@@ -9,7 +9,9 @@ export async function receiveWebhook(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const result = await ingestWebhook(req.params.sourceId, req.rawBody ?? '');
+    const signatureHeader = req.headers['x-webhook-signature'] as string | undefined;
+    const timestampHeader = req.headers['x-webhook-timestamp'] as string | undefined;
+    const result = await ingestWebhook(req.params.sourceId, req.rawBody ?? '', signatureHeader, timestampHeader);
     res.status(202).json(successResponse(result));
   } catch (err) {
     next(err);
