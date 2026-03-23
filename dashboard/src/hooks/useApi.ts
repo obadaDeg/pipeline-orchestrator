@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 export function useApi() {
   const { apiKey, setUnauthorized } = useAuth();
 
-  const apiFetch = useCallback(async <T = any>(endpoint: string, options?: RequestInit): Promise<T> => {
+  const apiFetch = useCallback(async <T = unknown>(endpoint: string, options?: RequestInit): Promise<T> => {
     const headers = new Headers(options?.headers);
     if (apiKey) {
       headers.set('Authorization', `Bearer ${apiKey}`);

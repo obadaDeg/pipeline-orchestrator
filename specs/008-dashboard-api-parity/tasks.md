@@ -53,8 +53,8 @@
 
 ### Tests for User Story 1
 
-- [ ] T010 [P] [US1] Write unit test for `listJobsHandler` in `src/api/controllers/jobs.controller.test.ts` covering: paginated response shape, `pipelineId` filter applied, user-scoping (other user's jobs excluded)
-- [ ] T011 [P] [US1] Write unit test for `listJobs` service method in `src/services/job.service.test.ts` covering: returns only jobs from user's pipelines, `pipelineId` filter narrows results, empty result set returns `{ items: [], total: 0 }`
+- [x] T010 [P] [US1] Write unit test for `listJobsHandler` in `src/api/controllers/jobs.controller.test.ts` covering: paginated response shape, `pipelineId` filter applied, user-scoping (other user's jobs excluded)
+- [x] T011 [P] [US1] Write unit test for `listJobs` service method in `src/services/job.service.test.ts` covering: returns only jobs from user's pipelines, `pipelineId` filter narrows results, empty result set returns `{ items: [], total: 0 }`
 
 **Checkpoint**: Navigate to `/jobs` — page loads, shows jobs, pagination works. US1 complete and independently testable.
 
@@ -75,8 +75,8 @@
 
 ### Tests for User Story 2
 
-- [ ] T016 [P] [US2] Write unit test for updated `getDeliveryAttempts` controller in `src/api/controllers/jobs.controller.test.ts` — verify pagination params are applied, response shape includes all four fields, default `limit=50` when no query params provided
-- [ ] T017 [P] [US2] Write unit test for updated `getDeliveryAttempts` service in `src/services/job.service.test.ts` — verify count query runs, `offset` applied correctly, `total` matches unfiltered count
+- [x] T016 [P] [US2] Write unit test for updated `getDeliveryAttempts` controller in `src/api/controllers/jobs.controller.test.ts` — verify pagination params are applied, response shape includes all four fields, default `limit=50` when no query params provided
+- [x] T017 [P] [US2] Write unit test for updated `getDeliveryAttempts` service in `src/services/job.service.test.ts` — verify count query runs, `offset` applied correctly, `total` matches unfiltered count
 
 **Checkpoint**: Open any `/jobs/:id` — delivery attempts show correct total, pagination controls are functional. US2 complete and independently testable.
 
@@ -96,7 +96,7 @@
 
 ### Tests for User Story 3
 
-- [ ] T021 [US3] Write `dashboard/src/components/SigningSecretPanel.test.tsx` covering: renders "Not configured" state when `active: false`; renders hint and action buttons when `active: true`; Generate button calls POST and shows revealed secret; Rotate shows ConfirmDialog before calling POST; Revoke shows ConfirmDialog before calling DELETE; secret field not visible after navigating away (unmount + remount)
+- [x] T021 [US3] Write `dashboard/src/components/SigningSecretPanel.test.tsx` covering: renders "Not configured" state when `active: false`; renders hint and action buttons when `active: true`; Generate button calls POST and shows revealed secret; Rotate shows ConfirmDialog before calling POST; Revoke shows ConfirmDialog before calling DELETE; secret field not visible after navigating away (unmount + remount)
 
 **Checkpoint**: Security tab present on pipeline detail. All four signing secret states render and transition correctly. US3 complete and independently testable.
 
@@ -115,7 +115,7 @@
 
 ### Tests for User Story 4
 
-- [ ] T024 [US4] Update `dashboard/src/pages/PipelineDetailPage.test.tsx` — add tests: Edit button enters edit mode with pre-filled values; empty name shows validation error and blocks save; valid save calls PATCH and updates displayed name; Cancel restores original values without API call
+- [x] T024 [US4] Update `dashboard/src/pages/PipelineDetailPage.test.tsx` — add tests: Edit button enters edit mode with pre-filled values; empty name shows validation error and blocks save; valid save calls PATCH and updates displayed name; Cancel restores original values without API call
 
 **Checkpoint**: Pipeline name and description are editable from the detail page. Validation, save, and cancel all work correctly. US4 complete and independently testable.
 
@@ -136,7 +136,7 @@
 
 ### Tests for User Story 5
 
-- [ ] T029 [US5] Write `dashboard/src/pages/RegisterPage.test.tsx` — tests: form renders with email and password fields; short password shows inline error without network call; valid submission calls POST /auth/register and triggers auth.login; 409 response shows "Email already registered" error; login page link is present and navigates to /login
+- [x] T029 [US5] Write `dashboard/src/pages/RegisterPage.test.tsx` — tests: form renders with email and password fields; short password shows inline error without network call; valid submission calls POST /auth/register and triggers auth.login; 409 response shows "Email already registered" error; login page link is present and navigates to /login
 
 **Checkpoint**: `/register` page is accessible from login, validates correctly, and auto-logs-in on success. US5 complete and independently testable.
 
@@ -164,13 +164,13 @@
 
 ### Tests for User Story 6
 
-- [ ] T038 [P] [US6] Write `dashboard/src/pages/TeamsPage.test.tsx` — tests: renders team list from GET /teams; empty state shown when no teams; New Team form submits POST /teams; navigates to /teams/:id on success
-- [ ] T039 [P] [US6] Write `dashboard/src/pages/TeamDetailPage.test.tsx` — tests: renders members list; Add Member calls POST /teams/:id/members; Remove Member shows confirm dialog then calls DELETE; Delete Team shows confirm dialog then calls DELETE and navigates to /teams; non-owner does not see Add/Remove/Delete buttons
+- [x] T038 [P] [US6] Write `dashboard/src/pages/TeamsPage.test.tsx` — tests: renders team list from GET /teams; empty state shown when no teams; New Team form submits POST /teams; navigates to /teams/:id on success
+- [x] T039 [P] [US6] Write `dashboard/src/pages/TeamDetailPage.test.tsx` — tests: renders members list; Add Member calls POST /teams/:id/members; Remove Member shows confirm dialog then calls DELETE; Delete Team shows confirm dialog then calls DELETE and navigates to /teams; non-owner does not see Add/Remove/Delete buttons
 
 ### Backend Tests for User Story 6
 
-- [ ] T040 [P] [US6] Write unit test for `listTeamsHandler` in `src/api/controllers/teams.controller.test.ts` — verify response shape includes `items` array with `memberCount` and `isOwner` fields; verify empty array returned for user with no teams
-- [ ] T041 [P] [US6] Write unit test for `listTeams` service in `src/services/team.service.test.ts` — verify owned teams included, member teams included, non-member teams excluded
+- [x] T040 [P] [US6] Write unit test for `listTeamsHandler` in `src/api/controllers/teams.controller.test.ts` — verify response shape includes `items` array with `memberCount` and `isOwner` fields; verify empty array returned for user with no teams
+- [x] T041 [P] [US6] Write unit test for `listTeams` service in `src/services/team.service.test.ts` — verify owned teams included, member teams included, non-member teams excluded
 
 **Checkpoint**: Teams pages accessible from sidebar. Create, view members, add member, remove member, delete all work correctly. Backend `GET /teams` returns correct user-scoped results. US6 complete and independently testable.
 

@@ -25,8 +25,8 @@ export function LoginPage() {
       });
       login(response.apiKey.key, email);
       // Navigation is handled by AuthContext (or just React Router re-rendering ProtectedRoute)
-    } catch (err: any) {
-      setError(err.message || 'Failed to login');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to login');
     } finally {
       setIsLoading(false);
     }
