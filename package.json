@@ -19,7 +19,9 @@
     "test": "vitest run tests/unit",
     "test:watch": "vitest",
     "test:integration": "vitest run tests/integration --fileParallelism=false",
-    "test:all": "vitest run"
+    "test:all": "vitest run",
+    "build:dashboard": "cd dashboard && npm run build",
+    "dev:dashboard": "cd dashboard && npm run dev"
   },
   "dependencies": {
     "argon2": "^0.44.0",
