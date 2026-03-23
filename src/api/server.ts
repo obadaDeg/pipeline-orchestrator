@@ -1,5 +1,9 @@
 import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { config } from '../config.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { logger } from '../lib/logger.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { authRouter } from './routes/auth.router.js';
@@ -22,6 +26,14 @@ app.use('/auth', authRouter);
 app.use('/pipelines', pipelinesRouter);
 app.use('/jobs', jobsRouter);
 app.use('/teams', teamsRouter);
+
+// Dashboard SPA — serve static assets and catch-all for client-side routing
+// Must come AFTER all API routes so /auth, /pipelines, /jobs etc. are not shadowed
+const dashboardDir = path.join(__dirname, '../../public/dashboard');
+app.use('/dashboard', express.static(dashboardDir));
+app.get('/dashboard/*', (_req, res) => {
+  res.sendFile(path.join(dashboardDir, 'index.html'));
+});
 
 // Error handler must be last — Express identifies 4-argument functions as error handlers
 app.use(errorHandler);
