@@ -25,7 +25,7 @@ const mockDb = db as {
 // Helper to build a fluent chain that resolves to `rows`
 function chain(rows: unknown[]) {
   const obj: Record<string, unknown> = {};
-  const methods = ['from', 'where', 'innerJoin', 'values', 'returning', 'set'];
+  const methods = ['from', 'where', 'innerJoin', 'values', 'returning', 'set', 'groupBy', 'orderBy', 'limit', 'offset'];
   methods.forEach((m) => { obj[m] = vi.fn(() => obj); });
   obj['then'] = (resolve: (v: unknown) => unknown) => Promise.resolve(rows).then(resolve);
   // Make it thenable AND iterable-result via await
@@ -191,5 +191,68 @@ describe('removeMember', () => {
     await expect(
       teamService.removeMember(TEAM_ID, OWNER_ID, 'nonmember-uuid'),
     ).rejects.toMatchObject({ statusCode: 404, code: 'MEMBER_NOT_FOUND' });
+  });
+});
+
+describe('listTeams', () => {
+  afterEach(() => vi.resetAllMocks());
+
+  it('returns empty items when user belongs to no teams', async () => {
+    // getUserTeamIds: owned=[], member=[]
+    mockDb.select
+      .mockReturnValueOnce(chain([]))  // getUserTeamIds: owned teams
+      .mockReturnValueOnce(chain([])); // getUserTeamIds: member teams
+
+    const result = await teamService.listTeams(OWNER_ID);
+    expect(result).toEqual({ items: [] });
+  });
+
+  it('includes teams the user owns with isOwner=true', async () => {
+    mockDb.select
+      .mockReturnValueOnce(chain([{ id: TEAM_ID }]))  // getUserTeamIds: owned
+      .mockReturnValueOnce(chain([]))                  // getUserTeamIds: member
+      .mockReturnValueOnce(chain([TEAM_ROW]))          // listTeams: teams query
+      .mockReturnValueOnce(chain([]));                 // listTeams: member counts
+
+    const result = await teamService.listTeams(OWNER_ID);
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].id).toBe(TEAM_ID);
+    expect(result.items[0].isOwner).toBe(true);
+  });
+
+  it('includes member teams with isOwner=false', async () => {
+    const memberTeam = { ...TEAM_ROW, id: 'team-2', ownerUserId: 'other-owner' };
+    mockDb.select
+      .mockReturnValueOnce(chain([]))                   // getUserTeamIds: owned
+      .mockReturnValueOnce(chain([{ id: 'team-2' }]))   // getUserTeamIds: member
+      .mockReturnValueOnce(chain([memberTeam]))          // listTeams: teams query
+      .mockReturnValueOnce(chain([]));                   // listTeams: member counts
+
+    const result = await teamService.listTeams(MEMBER_ID);
+
+    expect(result.items[0].isOwner).toBe(false);
+  });
+
+  it('populates memberCount from membership count rows', async () => {
+    mockDb.select
+      .mockReturnValueOnce(chain([{ id: TEAM_ID }]))          // getUserTeamIds: owned
+      .mockReturnValueOnce(chain([]))                          // getUserTeamIds: member
+      .mockReturnValueOnce(chain([TEAM_ROW]))                  // listTeams: teams
+      .mockReturnValueOnce(chain([{ teamId: TEAM_ID, count: 5 }])); // member counts
+
+    const result = await teamService.listTeams(OWNER_ID);
+    expect(result.items[0].memberCount).toBe(5);
+  });
+
+  it('defaults memberCount to 0 when no membership rows returned', async () => {
+    mockDb.select
+      .mockReturnValueOnce(chain([{ id: TEAM_ID }])) // getUserTeamIds: owned
+      .mockReturnValueOnce(chain([]))                  // getUserTeamIds: member
+      .mockReturnValueOnce(chain([TEAM_ROW]))          // listTeams: teams
+      .mockReturnValueOnce(chain([]));                 // listTeams: member counts (empty)
+
+    const result = await teamService.listTeams(OWNER_ID);
+    expect(result.items[0].memberCount).toBe(0);
   });
 });

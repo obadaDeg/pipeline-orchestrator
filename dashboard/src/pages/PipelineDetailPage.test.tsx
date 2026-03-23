@@ -92,6 +92,79 @@ describe('PipelineDetailPage', () => {
     vi.unstubAllGlobals();
   });
 
+  it('Edit button enters edit mode with pre-filled name', async () => {
+    renderWithRoute(<PipelineDetailPage />, ROUTE, ENTRY);
+    await waitFor(() => screen.getByText('Test Pipeline'));
+
+    await userEvent.click(screen.getByRole('button', { name: /^edit$/i }));
+
+    const input = screen.getByDisplayValue('Test Pipeline');
+    expect(input).toBeInTheDocument();
+  });
+
+  it('empty name shows validation error and blocks save', async () => {
+    renderWithRoute(<PipelineDetailPage />, ROUTE, ENTRY);
+    await waitFor(() => screen.getByText('Test Pipeline'));
+
+    await userEvent.click(screen.getByRole('button', { name: /^edit$/i }));
+    const nameInput = screen.getByDisplayValue('Test Pipeline');
+    await userEvent.clear(nameInput);
+    await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/pipeline name is required/i)).toBeInTheDocument();
+    });
+  });
+
+  it('valid save calls PATCH and updates displayed name', async () => {
+    let patchBody: unknown;
+    server.use(
+      http.patch('/pipelines/:id', async ({ request }) => {
+        patchBody = await request.json();
+        return HttpResponse.json({
+          data: {
+            id: 'pipe-1',
+            sourceId: 'src-abc123',
+            name: 'Updated Name',
+            actionType: 'field_extractor',
+            actionConfig: { field: 'event' },
+            subscribers: [],
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        });
+      })
+    );
+
+    renderWithRoute(<PipelineDetailPage />, ROUTE, ENTRY);
+    await waitFor(() => screen.getByText('Test Pipeline'));
+
+    await userEvent.click(screen.getByRole('button', { name: /^edit$/i }));
+    const nameInput = screen.getByDisplayValue('Test Pipeline');
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'Updated Name');
+    await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => {
+      expect(patchBody).toMatchObject({ name: 'Updated Name' });
+    });
+  });
+
+  it('Cancel restores original values without API call', async () => {
+    renderWithRoute(<PipelineDetailPage />, ROUTE, ENTRY);
+    await waitFor(() => screen.getByText('Test Pipeline'));
+
+    await userEvent.click(screen.getByRole('button', { name: /^edit$/i }));
+    const nameInput = screen.getByDisplayValue('Test Pipeline');
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'Changed Name');
+    await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Pipeline')).toBeInTheDocument();
+      expect(screen.queryByDisplayValue('Changed Name')).not.toBeInTheDocument();
+    });
+  });
+
   it('shows ErrorState when pipeline API returns 500', async () => {
     server.use(
       http.get('/pipelines/:id', () =>

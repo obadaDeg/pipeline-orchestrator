@@ -1,4 +1,4 @@
-export function safeParseJson(str: string): any {
+export function safeParseJson(str: string): unknown {
   if (!str) return null;
   try {
     return JSON.parse(str);
@@ -7,7 +7,7 @@ export function safeParseJson(str: string): any {
   }
 }
 
-export function formatJson(value: any): string {
+export function formatJson(value: unknown): string {
   if (value === undefined || value === null) return '—';
   if (typeof value === 'string') {
     return JSON.stringify(safeParseJson(value), null, 2);

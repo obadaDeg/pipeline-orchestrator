@@ -5,7 +5,6 @@ import { Badge } from '../components/Badge';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { Pagination } from '../components/Pagination';
-import { SkeletonRow } from '../components/SkeletonRow';
 import { useApi } from '../hooks/useApi';
 import { formatRelative } from '../utils/time';
 import { formatJson } from '../utils/json';
