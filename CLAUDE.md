@@ -13,6 +13,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-14
 - No new storage — existing PostgreSQL via existing REST API (005-dashboard-ui)
 - TypeScript 5.4 with JSX (React 18.3) + React 18, React Router v6, TailwindCSS 3.4, Vite 5, Lucide React (new), highlight.js (new — JSON language only, ~5KB) (006-dashboard-ui-redesign)
 - N/A — pure frontend; consumes existing REST API via `useApi` hook unchanged (006-dashboard-ui-redesign)
+- TypeScript 5.4 (same as dashboard production code) (007-dashboard-ui-tests)
+- N/A — no new storage; E2E tests use the existing PostgreSQL stack via Docker Compose (007-dashboard-ui-tests)
 
 - TypeScript 5.x strict mode, Node.js 20 LTS + Express 4.x, BullMQ 5.x + ioredis 5.x, Drizzle ORM 0.30 + pg 8.x, Zod 3.x (001-webhook-pipeline-core)
 
@@ -32,9 +34,9 @@ npm test && npm run lint
 TypeScript 5.x strict mode, Node.js 20 LTS: Follow standard conventions
 
 ## Recent Changes
+- 007-dashboard-ui-tests: Added TypeScript 5.4 (same as dashboard production code)
 - 006-dashboard-ui-redesign: Added TypeScript 5.4 with JSX (React 18.3) + React 18, React Router v6, TailwindCSS 3.4, Vite 5, Lucide React (new), highlight.js (new — JSON language only, ~5KB)
 - 005-dashboard-ui: Added TypeScript 5.4 (backend) + TypeScript 5.4 with JSX (frontend) + React 18, React Router v6, TailwindCSS, Vite 5 (frontend); Express 4.x (backend, existing)
-- 004-improve-cicd: Added YAML (GitHub Actions workflow syntax) + GitHub Actions `services:`, `actions/checkout@v4`, `actions/setup-node@v4` — all already in use
 
 
 <!-- MANUAL ADDITIONS START -->

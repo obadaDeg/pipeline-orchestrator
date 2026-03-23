@@ -29,6 +29,18 @@ npm run dev        # API on :3000
 npm run worker
 ```
 
+## Dashboard UI
+
+The Pipeline Orchestrator includes a built-in React Single Page Application for managing pipelines, jobs, and your account.
+
+### Accessing the Dashboard
+
+1. Start the stack: `docker compose up -d --build`
+2. Navigate to [http://localhost:4000/dashboard/login](http://localhost:4000/dashboard/login)
+3. If this is your first time, you must register an account via the API (`POST /auth/register`) and then use those credentials to login.
+
+![Dashboard Preview](docs/dashboard-preview-placeholder.png)
+
 ---
 
 ## Authentication

@@ -10,3 +10,5 @@ docs/
 .specify/
 .DS_Store
 Thumbs.db
+dashboard/node_modules/
+public/dashboard/

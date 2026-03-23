@@ -87,6 +87,46 @@ jobs:
       - run: npm ci
       - run: npm run test:integration
 
+  test-dashboard:
+    name: Dashboard UI Tests
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: cd dashboard && npm ci && npm test
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [test-dashboard]
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: cd dashboard && npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: docker compose up -d
+      - name: Wait for stack to be ready
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:4000/health && break || sleep 2
+          done
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+
   docker-build:
     name: Docker Build
     runs-on: ubuntu-latest

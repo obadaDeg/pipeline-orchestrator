@@ -16,12 +16,12 @@
 
 **Purpose**: Bootstrap the `dashboard/` React project and wire it into the existing Express server and Docker build.
 
-- [ ] T001 Create `dashboard/` directory at project root with `package.json` (react 18, react-dom, react-router-dom v6, typescript 5.4), `vite.config.ts` (outDir `../public/dashboard`), `tsconfig.json` (strict, moduleResolution bundler, jsx react-jsx), `index.html`, and `dashboard/src/main.tsx` entry point
-- [ ] T002 [P] Install and configure TailwindCSS in `dashboard/` — add `tailwind.config.ts`, `postcss.config.js`, and `@tailwind` directives in `dashboard/src/index.css`
-- [ ] T003 [P] Add `build:dashboard` (`cd dashboard && npm run build`) and `dev:dashboard` (`cd dashboard && npm run dev`) scripts to root `package.json`
-- [ ] T004 Add `express.static` mount and SPA catch-all to `src/api/server.ts` — mount `/dashboard` to `public/dashboard` after all existing API routes and before the error handler
-- [ ] T005 Extend `Dockerfile` to 3-stage build: `backend-builder` (existing tsc), `frontend-builder` (dashboard npm ci + vite build), `runtime` (copies both `dist/` and `public/dashboard/` from their respective builder stages)
-- [ ] T006 [P] Update `.gitignore` to exclude `public/dashboard/` (build output) and `dashboard/node_modules/`; update `.dockerignore` to exclude `dashboard/node_modules/`
+- [X] T001 Create `dashboard/` directory at project root with `package.json` (react 18, react-dom, react-router-dom v6, typescript 5.4), `vite.config.ts` (outDir `../public/dashboard`), `tsconfig.json` (strict, moduleResolution bundler, jsx react-jsx), `index.html`, and `dashboard/src/main.tsx` entry point
+- [X] T002 [P] Install and configure TailwindCSS in `dashboard/` — add `tailwind.config.ts`, `postcss.config.js`, and `@tailwind` directives in `dashboard/src/index.css`
+- [X] T003 [P] Add `build:dashboard` (`cd dashboard && npm run build`) and `dev:dashboard` (`cd dashboard && npm run dev`) scripts to root `package.json`
+- [X] T004 Add `express.static` mount and SPA catch-all to `src/api/server.ts` — mount `/dashboard` to `public/dashboard` after all existing API routes and before the error handler
+- [X] T005 Extend `Dockerfile` to 3-stage build: `backend-builder` (existing tsc), `frontend-builder` (dashboard npm ci + vite build), `runtime` (copies both `dist/` and `public/dashboard/` from their respective builder stages)
+- [X] T006 [P] Update `.gitignore` to exclude `public/dashboard/` (build output) and `dashboard/node_modules/`; update `.dockerignore` to exclude `dashboard/node_modules/`
 
 ---
 
