@@ -1,4 +1,4 @@
-import { Briefcase, Copy, Pencil, Trash2, Users } from 'lucide-react';
+import { Briefcase, Copy, Pencil, Trash2, Users, X, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '../components/Badge';
@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { Pagination } from '../components/Pagination';
+import { SigningSecretPanel } from '../components/SigningSecretPanel';
 import { SkeletonRow } from '../components/SkeletonRow';
 import { Tabs } from '../components/Tabs';
 import { useApi } from '../hooks/useApi';
@@ -18,6 +19,7 @@ interface Pipeline {
   id: string;
   sourceId: string;
   name: string;
+  description?: string;
   actionType: string;
   actionConfig: Record<string, unknown>;
   subscribers: Array<{ id?: string; url: string }> | number;
@@ -42,6 +44,7 @@ const TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'subscribers', label: 'Subscribers' },
   { key: 'jobs', label: 'Jobs' },
+  { key: 'security', label: 'Security' },
 ];
 
 export function PipelineDetailPage() {
@@ -55,6 +58,13 @@ export function PipelineDetailPage() {
   const [pipelineLoading, setPipelineLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editNameError, setEditNameError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [jobs, setJobs] = useState<PaginatedResponse<Job> | null>(null);
   const [jobsError, setJobsError] = useState<string | null>(null);
@@ -120,6 +130,40 @@ export function PipelineDetailPage() {
     addToast('Webhook URL copied', 'success');
   };
 
+  const startEdit = () => {
+    if (!pipeline) return;
+    setEditName(pipeline.name);
+    setEditDescription(pipeline.description ?? '');
+    setEditNameError(null);
+    setIsEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditNameError(null);
+  };
+
+  const handleSave = async () => {
+    if (!editName.trim()) {
+      setEditNameError('Pipeline name is required');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const updated = await apiFetch<Pipeline>(`/pipelines/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: editName.trim(), description: editDescription.trim() || undefined }),
+      });
+      setPipeline(updated);
+      setIsEditing(false);
+      addToast('Pipeline updated', 'success');
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : 'Failed to update pipeline', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (pipelineLoading) {
     return (
       <div className="animate-pulse space-y-6">
@@ -145,26 +189,71 @@ export function PipelineDetailPage() {
       {/* Header card */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
         <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{pipeline.name}</h1>
-              <Badge variant={pipeline.actionType} />
-            </div>
-            <p className="text-sm text-gray-500 mt-1">Created {formatRelative(pipeline.createdAt)}</p>
+          <div className="flex-1 min-w-0 mr-4">
+            {isEditing ? (
+              <div className="space-y-3">
+                <div>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={editName}
+                    onChange={(e) => { setEditName(e.target.value); setEditNameError(null); }}
+                    className="w-full text-2xl font-bold text-gray-900 border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Pipeline name"
+                  />
+                  {editNameError && (
+                    <p className="text-xs text-red-600 mt-1">{editNameError}</p>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full text-sm text-gray-500 border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Description (optional)"
+                />
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold text-gray-900">{pipeline.name}</h1>
+                  <Badge variant={pipeline.actionType} />
+                </div>
+                {pipeline.description && (
+                  <p className="text-sm text-gray-600 mt-1">{pipeline.description}</p>
+                )}
+                <p className="text-sm text-gray-500 mt-1">Created {formatRelative(pipeline.createdAt)}</p>
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={copySourceUrl}>
-              <Copy size={14} />
-              Copy Webhook URL
-            </Button>
-            <Button variant="ghost" size="sm" title="Edit coming soon">
-              <Pencil size={14} />
-              Edit
-            </Button>
-            <Button variant="danger" size="sm" onClick={() => setShowConfirmDelete(true)}>
-              <Trash2 size={14} />
-              Delete
-            </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            {isEditing ? (
+              <>
+                <Button variant="secondary" size="sm" onClick={cancelEdit} disabled={isSaving}>
+                  <X size={14} />
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleSave} loading={isSaving}>
+                  <Check size={14} />
+                  Save
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="secondary" size="sm" onClick={copySourceUrl}>
+                  <Copy size={14} />
+                  Copy Webhook URL
+                </Button>
+                <Button variant="ghost" size="sm" onClick={startEdit}>
+                  <Pencil size={14} />
+                  Edit
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => setShowConfirmDelete(true)}>
+                  <Trash2 size={14} />
+                  Delete
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -276,6 +365,11 @@ export function PipelineDetailPage() {
               </div>
             )}
           </>
+        )}
+
+        {/* Security tab */}
+        {activeTab === 'security' && id && (
+          <SigningSecretPanel pipelineId={id} />
         )}
       </div>
 

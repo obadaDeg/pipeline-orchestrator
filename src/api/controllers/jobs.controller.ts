@@ -1,7 +1,19 @@
 import { NextFunction, Request, Response } from 'express';
-import { parsePagination, paginatedResponse } from '../../lib/pagination.js';
+import { paginatedResponse, parsePagination } from '../../lib/pagination.js';
 import { successResponse } from '../../lib/response.js';
 import * as jobService from '../../services/job.service.js';
+
+export async function listJobs(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { page, limit, offset } = parsePagination(req.query);
+    const pipelineId =
+      typeof req.query.pipelineId === 'string' ? req.query.pipelineId : undefined;
+    const result = await jobService.listJobs(req.user!.id, { page, limit, offset, pipelineId });
+    res.status(200).json(successResponse(paginatedResponse(result.items, result.total, page, limit)));
+  } catch (err) {
+    next(err);
+  }
+}
 
 export async function getJob(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -32,8 +44,9 @@ export async function getDeliveryAttempts(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const attempts = await jobService.getDeliveryAttempts(req.params.id);
-    res.status(200).json(successResponse({ items: attempts }));
+    const { page, limit, offset } = parsePagination(req.query);
+    const result = await jobService.getDeliveryAttempts(req.params.id, { limit, offset });
+    res.status(200).json(successResponse(paginatedResponse(result.items, result.total, page, limit)));
   } catch (err) {
     next(err);
   }

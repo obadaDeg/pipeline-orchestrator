@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { pipelines, teamMemberships, teams, users } from '../db/schema.js';
 import { AppError, NotFoundError } from '../lib/errors.js';
@@ -44,6 +44,47 @@ export async function getUserTeamIds(userId: string): Promise<string[]> {
     db.select({ id: teamMemberships.teamId }).from(teamMemberships).where(eq(teamMemberships.userId, userId)),
   ]);
   return [...new Set([...ownedRows.map((r) => r.id), ...memberRows.map((r) => r.id)])];
+}
+
+export interface TeamListItem {
+  id: string;
+  name: string;
+  ownerUserId: string;
+  memberCount: number;
+  isOwner: boolean;
+  createdAt: Date;
+}
+
+export async function listTeams(userId: string): Promise<{ items: TeamListItem[] }> {
+  const teamIds = await getUserTeamIds(userId);
+
+  if (teamIds.length === 0) {
+    return { items: [] };
+  }
+
+  const allTeams = await db
+    .select()
+    .from(teams)
+    .where(inArray(teams.id, teamIds));
+
+  const memberCounts = await db
+    .select({ teamId: teamMemberships.teamId, count: sql<number>`count(*)::int` })
+    .from(teamMemberships)
+    .where(inArray(teamMemberships.teamId, teamIds))
+    .groupBy(teamMemberships.teamId);
+
+  const countMap = new Map(memberCounts.map((r) => [r.teamId, r.count]));
+
+  const items: TeamListItem[] = allTeams.map((t) => ({
+    id: t.id,
+    name: t.name,
+    ownerUserId: t.ownerUserId,
+    memberCount: countMap.get(t.id) ?? 0,
+    isOwner: t.ownerUserId === userId,
+    createdAt: t.createdAt,
+  }));
+
+  return { items };
 }
 
 export async function createTeam(ownerUserId: string, name: string): Promise<TeamResult> {

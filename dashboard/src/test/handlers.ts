@@ -59,6 +59,16 @@ const MOCK_API_KEY = {
   lastUsedAt: null,
 };
 
+const MOCK_TEAM = {
+  id: 'team-1',
+  name: 'Test Team',
+  ownerUserId: 'user-1',
+  members: [
+    { userId: 'user-2', email: 'member@example.com', joinedAt: '2026-01-02T00:00:00.000Z' },
+  ],
+  createdAt: '2026-01-01T00:00:00.000Z',
+};
+
 export const handlers = [
   // Pipelines list
   http.get('/pipelines', () =>
@@ -143,4 +153,117 @@ export const handlers = [
       data: { items: [], total: 0, page: 1, limit: 20 },
     })
   ),
+
+  // Register
+  http.post('/auth/register', async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        data: {
+          user: { id: 'user-new', email: body.email as string, createdAt: '2026-01-01T00:00:00.000Z' },
+          apiKey: {
+            id: 'key-new',
+            name: 'Default',
+            key: 'wh_test_newregistereduserkey',
+            keyPrefix: 'wh_test_n',
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        },
+      },
+      { status: 201 }
+    );
+  }),
+
+  // Signing secret — get status
+  http.get('/pipelines/:id/signing-secret', () =>
+    HttpResponse.json({ data: { active: false, hint: null, createdAt: null } })
+  ),
+
+  // Signing secret — generate / rotate
+  http.post('/pipelines/:id/signing-secret', () =>
+    HttpResponse.json(
+      {
+        data: {
+          secret: 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+          hint: 'abcdef',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      },
+      { status: 201 }
+    )
+  ),
+
+  // Signing secret — revoke
+  http.delete('/pipelines/:id/signing-secret', () => new HttpResponse(null, { status: 204 })),
+
+  // Update pipeline
+  http.patch('/pipelines/:id', async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({
+      data: {
+        ...MOCK_PIPELINE,
+        name: (body.name as string) ?? MOCK_PIPELINE.name,
+        description: (body.description as string) ?? undefined,
+      },
+    });
+  }),
+
+  // Teams list
+  http.get('/teams', () =>
+    HttpResponse.json({
+      data: {
+        items: [
+          {
+            id: MOCK_TEAM.id,
+            name: MOCK_TEAM.name,
+            ownerUserId: MOCK_TEAM.ownerUserId,
+            memberCount: MOCK_TEAM.members.length,
+            isOwner: true,
+            createdAt: MOCK_TEAM.createdAt,
+          },
+        ],
+      },
+    })
+  ),
+
+  // Single team
+  http.get('/teams/:id', () =>
+    HttpResponse.json({ data: MOCK_TEAM })
+  ),
+
+  // Create team
+  http.post('/teams', async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        data: {
+          id: 'team-new',
+          name: (body.name as string) ?? 'New Team',
+          ownerUserId: 'user-1',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      },
+      { status: 201 }
+    );
+  }),
+
+  // Add team member
+  http.post('/teams/:id/members', () =>
+    HttpResponse.json(
+      {
+        data: {
+          teamId: 'team-1',
+          userId: 'user-new',
+          addedAt: '2026-01-01T00:00:00.000Z',
+        },
+      },
+      { status: 201 }
+    )
+  ),
+
+  // Remove team member
+  http.delete('/teams/:id/members/:userId', () => new HttpResponse(null, { status: 204 })),
+
+  // Delete team
+  http.delete('/teams/:id', () => new HttpResponse(null, { status: 204 })),
 ];

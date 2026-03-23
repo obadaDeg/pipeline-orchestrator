@@ -2,6 +2,15 @@ import { NextFunction, Request, Response } from 'express';
 import { successResponse } from '../../lib/response.js';
 import * as teamService from '../../services/team.service.js';
 
+export async function listTeamsHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await teamService.listTeams(req.user!.id);
+    res.status(200).json(successResponse(result));
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function createTeamHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const team = await teamService.createTeam(req.user!.id, req.body.name as string);

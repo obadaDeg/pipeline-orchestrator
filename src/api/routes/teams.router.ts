@@ -8,6 +8,7 @@ export const teamsRouter = Router();
 
 teamsRouter.use(authenticate);
 
+teamsRouter.get('/', controller.listTeamsHandler);
 teamsRouter.post('/', validateBody(CreateTeamBodySchema), controller.createTeamHandler);
 teamsRouter.get('/:id', controller.getTeamHandler);
 teamsRouter.delete('/:id', controller.deleteTeamHandler);
