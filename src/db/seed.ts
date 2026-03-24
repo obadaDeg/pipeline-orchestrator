@@ -28,7 +28,7 @@ const PIPELINE_DEFS = [
   {
     name: 'GitHub Events',
     actionType: 'field_extractor' as const,
-    actionConfig: { fields: ['event', 'repo', 'ref'] },
+    actionConfig: { mapping: { event: 'event', repo: 'repo', ref: 'ref' } },
     teamKey: 'platform' as const,
     hasSecret: true,
     completedJobs: 4,
@@ -37,7 +37,7 @@ const PIPELINE_DEFS = [
   {
     name: 'Stripe Payments',
     actionType: 'payload_filter' as const,
-    actionConfig: { field: 'type', values: ['charge.succeeded', 'invoice.paid'] },
+    actionConfig: { field: 'type', operator: 'eq', value: 'charge.succeeded' },
     teamKey: 'platform' as const,
     hasSecret: false,
     completedJobs: 3,
@@ -46,7 +46,7 @@ const PIPELINE_DEFS = [
   {
     name: 'Slack Alerts',
     actionType: 'http_enricher' as const,
-    actionConfig: { url: 'https://httpbin.org/post', method: 'POST' },
+    actionConfig: { url: 'https://httpbin.org/post', mergeKey: 'enriched' },
     teamKey: 'data' as const,
     hasSecret: false,
     completedJobs: 1,
