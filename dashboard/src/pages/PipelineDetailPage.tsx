@@ -1,4 +1,4 @@
-import { Briefcase, Copy, Pencil, Trash2, Users, X, Check } from 'lucide-react';
+import { Briefcase, Copy, Pencil, Trash2, X, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '../components/Badge';
@@ -75,6 +75,12 @@ export function PipelineDetailPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [isCopied, setIsCopied] = useState(false);
 
+  // Subscriber management state
+  const [subscriberDraft, setSubscriberDraft] = useState<string[]>([]);
+  const [newSubscriberUrl, setNewSubscriberUrl] = useState('');
+  const [newSubscriberError, setNewSubscriberError] = useState<string | null>(null);
+  const [isSubscribersSaving, setIsSubscribersSaving] = useState(false);
+
   const fetchPipeline = async () => {
     setPipelineLoading(true);
     setPipelineError(null);
@@ -109,6 +115,15 @@ export function PipelineDetailPage() {
     fetchJobs(page);
   }, [id, page, apiFetch]);
 
+  useEffect(() => {
+    if (pipeline) {
+      const urls = Array.isArray(pipeline.subscribers)
+        ? pipeline.subscribers.map((s) => s.url)
+        : [];
+      setSubscriberDraft(urls);
+    }
+  }, [pipeline]);
+
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
@@ -119,6 +134,36 @@ export function PipelineDetailPage() {
       addToast(err instanceof Error ? err.message : 'Failed to delete pipeline', 'error');
       setIsDeleting(false);
       setShowConfirmDelete(false);
+    }
+  };
+
+  const handleAddSubscriber = () => {
+    const url = newSubscriberUrl.trim();
+    if (!url) { setNewSubscriberError('URL is required'); return; }
+    try { new URL(url); } catch { setNewSubscriberError('Must be a valid URL'); return; }
+    if (subscriberDraft.includes(url)) { setNewSubscriberError('Already added'); return; }
+    setSubscriberDraft((prev) => [...prev, url]);
+    setNewSubscriberUrl('');
+    setNewSubscriberError(null);
+  };
+
+  const handleRemoveSubscriber = (url: string) => {
+    setSubscriberDraft((prev) => prev.filter((u) => u !== url));
+  };
+
+  const handleSaveSubscribers = async () => {
+    setIsSubscribersSaving(true);
+    try {
+      const updated = await apiFetch<Pipeline>(`/pipelines/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ subscriberUrls: subscriberDraft }),
+      });
+      setPipeline(updated);
+      addToast('Subscribers saved', 'success');
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : 'Failed to save subscribers', 'error');
+    } finally {
+      setIsSubscribersSaving(false);
     }
   };
 
@@ -173,10 +218,6 @@ export function PipelineDetailPage() {
   }
   if (pipelineError) return <ErrorState error={pipelineError} onRetry={fetchPipeline} />;
   if (!pipeline) return <ErrorState error="Pipeline not found" />;
-
-  const subscriberUrls = Array.isArray(pipeline.subscribers)
-    ? pipeline.subscribers.map((s) => s.url)
-    : [];
 
   return (
     <div>
@@ -292,23 +333,57 @@ export function PipelineDetailPage() {
 
         {/* Subscribers tab */}
         {activeTab === 'subscribers' && (
-          <>
-            {subscriberUrls.length === 0 ? (
-              <EmptyState
-                icon={Users}
-                heading="No subscribers"
-                body="Add subscriber URLs when creating or editing the pipeline."
-              />
-            ) : (
-              <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-                {subscriberUrls.map((url, i) => (
-                  <div key={i} className="px-5 py-3 text-sm text-gray-800 font-mono">
-                    {url}
+          <div className="space-y-4">
+            {/* Current subscribers list */}
+            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+              {subscriberDraft.length === 0 ? (
+                <div className="px-5 py-8 text-center text-sm text-gray-400">
+                  No subscribers yet. Add one below.
+                </div>
+              ) : (
+                subscriberDraft.map((url) => (
+                  <div key={url} className="flex items-center justify-between px-5 py-3 gap-3">
+                    <span className="text-sm font-mono text-gray-800 truncate">{url}</span>
+                    <button
+                      onClick={() => handleRemoveSubscriber(url)}
+                      className="shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+                      title="Remove"
+                    >
+                      <X size={14} />
+                    </button>
                   </div>
-                ))}
+                ))
+              )}
+            </div>
+
+            {/* Add subscriber input */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Add subscriber URL</p>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={newSubscriberUrl}
+                  onChange={(e) => { setNewSubscriberUrl(e.target.value); setNewSubscriberError(null); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddSubscriber()}
+                  placeholder="https://example.com/webhook"
+                  className="flex-1 text-sm border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                />
+                <Button size="sm" variant="secondary" onClick={handleAddSubscriber}>
+                  Add
+                </Button>
               </div>
-            )}
-          </>
+              {newSubscriberError && (
+                <p className="text-xs text-red-600">{newSubscriberError}</p>
+              )}
+            </div>
+
+            {/* Save button */}
+            <div className="flex justify-end">
+              <Button onClick={handleSaveSubscribers} loading={isSubscribersSaving}>
+                Save subscribers
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* Jobs tab */}
