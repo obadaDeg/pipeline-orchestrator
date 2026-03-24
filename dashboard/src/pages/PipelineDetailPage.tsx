@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { CodeBlock } from '../components/CodeBlock';
+import { CodeEditorInput } from '../components/CodeEditorInput';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
@@ -64,7 +65,9 @@ export function PipelineDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editActionConfig, setEditActionConfig] = useState('');
   const [editNameError, setEditNameError] = useState<string | null>(null);
+  const [editConfigError, setEditConfigError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const [jobs, setJobs] = useState<PaginatedResponse<Job> | null>(null);
@@ -178,13 +181,16 @@ export function PipelineDetailPage() {
     if (!pipeline) return;
     setEditName(pipeline.name);
     setEditDescription(pipeline.description ?? '');
+    setEditActionConfig(JSON.stringify(pipeline.actionConfig, null, 2));
     setEditNameError(null);
+    setEditConfigError(null);
     setIsEditing(true);
   };
 
   const cancelEdit = () => {
     setIsEditing(false);
     setEditNameError(null);
+    setEditConfigError(null);
   };
 
   const handleSave = async () => {
@@ -192,11 +198,22 @@ export function PipelineDetailPage() {
       setEditNameError('Pipeline name is required');
       return;
     }
+    let parsedConfig: Record<string, unknown>;
+    try {
+      parsedConfig = JSON.parse(editActionConfig);
+    } catch {
+      setEditConfigError('Action config must be valid JSON');
+      return;
+    }
     setIsSaving(true);
     try {
       const updated = await apiFetch<Pipeline>(`/pipelines/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ name: editName.trim(), description: editDescription.trim() || undefined }),
+        body: JSON.stringify({
+          name: editName.trim(),
+          description: editDescription.trim() || undefined,
+          actionConfig: parsedConfig,
+        }),
       });
       setPipeline(updated);
       setIsEditing(false);
@@ -327,7 +344,20 @@ export function PipelineDetailPage() {
                 </Button>
               </div>
             </div>
-            <CodeBlock code={JSON.stringify(pipeline.actionConfig, null, 2)} />
+            {isEditing ? (
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Action Config</p>
+                <CodeEditorInput
+                  value={editActionConfig}
+                  onChange={(v) => { setEditActionConfig(v); setEditConfigError(null); }}
+                />
+                {editConfigError && (
+                  <p className="text-xs text-red-600 mt-1">{editConfigError}</p>
+                )}
+              </div>
+            ) : (
+              <CodeBlock code={JSON.stringify(pipeline.actionConfig, null, 2)} />
+            )}
           </div>
         )}
 
