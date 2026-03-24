@@ -11,6 +11,7 @@
     "start:worker": "node dist/worker/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "node --env-file .env --import tsx/esm src/db/seed.ts",
     "db:studio": "drizzle-kit studio",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",

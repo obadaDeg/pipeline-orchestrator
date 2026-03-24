@@ -42,8 +42,17 @@ export function PipelineListPage() {
   const [formActionType, setFormActionType] = useState('field_extractor');
   const [formActionConfig, setFormActionConfig] = useState('{}');
   const [formSubscribers, setFormSubscribers] = useState('');
+  const [formTeamId, setFormTeamId] = useState('');
   const [formConfigError, setFormConfigError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+
+  // Teams for the team selector
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    apiFetch<{ items: { id: string; name: string }[] }>('/teams')
+      .then((r) => setTeams(r.items))
+      .catch(() => setTeams([]));
+  }, [apiFetch]);
 
   const fetchPipelines = async (pageNumber: number) => {
     setLoading(true);
@@ -68,6 +77,7 @@ export function PipelineListPage() {
     setFormActionType('field_extractor');
     setFormActionConfig('{}');
     setFormSubscribers('');
+    setFormTeamId('');
     setFormConfigError(null);
   };
 
@@ -100,6 +110,7 @@ export function PipelineListPage() {
           actionType: formActionType,
           actionConfig: JSON.parse(formActionConfig),
           subscriberUrls,
+          ...(formTeamId ? { teamId: formTeamId } : {}),
         }),
       });
       closeAndReset();
@@ -231,6 +242,24 @@ export function PipelineListPage() {
               <option value="http_enricher">HTTP Enricher</option>
             </select>
           </div>
+
+          {teams.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Team <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <select
+                className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                value={formTeamId}
+                onChange={(e) => setFormTeamId(e.target.value)}
+              >
+                <option value="">No team (personal)</option>
+                {teams.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Action Config (JSON)</label>

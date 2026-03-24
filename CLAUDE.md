@@ -17,6 +17,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-14
 - N/A — no new storage; E2E tests use the existing PostgreSQL stack via Docker Compose (007-dashboard-ui-tests)
 - TypeScript 5.4, Node.js 20 LTS (backend + frontend) + Express 4.x, Drizzle ORM 0.30, Zod 3.x (backend); React 18.3, React Router v6, TailwindCSS 3.4, Vite 5, Vitest (dashboard) (008-dashboard-api-parity)
 - PostgreSQL — no schema changes; all required tables already exist (008-dashboard-api-parity)
+- TypeScript 5.4, Node.js 20 LTS + Express 4.x (backend), React 18.3 + Vite 5 (dashboard), Drizzle ORM 0.30, argon2 (password hashing), node:crypto (signing secret generation) (009-demo-seeds-webhook-url)
+- PostgreSQL — no schema changes; all seed data uses existing tables (009-demo-seeds-webhook-url)
 
 - TypeScript 5.x strict mode, Node.js 20 LTS + Express 4.x, BullMQ 5.x + ioredis 5.x, Drizzle ORM 0.30 + pg 8.x, Zod 3.x (001-webhook-pipeline-core)
 
@@ -36,9 +38,9 @@ npm test && npm run lint
 TypeScript 5.x strict mode, Node.js 20 LTS: Follow standard conventions
 
 ## Recent Changes
+- 009-demo-seeds-webhook-url: Added TypeScript 5.4, Node.js 20 LTS + Express 4.x (backend), React 18.3 + Vite 5 (dashboard), Drizzle ORM 0.30, argon2 (password hashing), node:crypto (signing secret generation)
 - 008-dashboard-api-parity: Added TypeScript 5.4, Node.js 20 LTS (backend + frontend) + Express 4.x, Drizzle ORM 0.30, Zod 3.x (backend); React 18.3, React Router v6, TailwindCSS 3.4, Vite 5, Vitest (dashboard)
 - 007-dashboard-ui-tests: Added TypeScript 5.4 (same as dashboard production code)
-- 006-dashboard-ui-redesign: Added TypeScript 5.4 with JSX (React 18.3) + React 18, React Router v6, TailwindCSS 3.4, Vite 5, Lucide React (new), highlight.js (new — JSON language only, ~5KB)
 
 
 <!-- MANUAL ADDITIONS START -->

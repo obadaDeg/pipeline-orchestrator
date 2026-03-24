@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 const MOCK_PIPELINE = {
   id: 'pipe-1',
   sourceId: 'src-abc123',
+  sourceUrl: 'http://localhost:3000/webhooks/src-abc123',
   name: 'Test Pipeline',
   actionType: 'field_extractor',
   actionConfig: { field: 'event' },

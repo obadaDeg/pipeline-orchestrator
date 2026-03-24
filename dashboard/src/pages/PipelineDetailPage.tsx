@@ -18,6 +18,7 @@ import { formatRelative } from '../utils/time';
 interface Pipeline {
   id: string;
   sourceId: string;
+  sourceUrl: string;
   name: string;
   description?: string;
   actionType: string;
@@ -72,6 +73,7 @@ export function PipelineDetailPage() {
   const [page, setPage] = useState(1);
 
   const [activeTab, setActiveTab] = useState('overview');
+  const [isCopied, setIsCopied] = useState(false);
 
   const fetchPipeline = async () => {
     setPipelineLoading(true);
@@ -120,14 +122,11 @@ export function PipelineDetailPage() {
     }
   };
 
-  const copySourceUrl = () => {
-    if (!pipeline) return;
-    let webhookUrl = `${window.location.origin}/webhooks/${pipeline.sourceId}`;
-    if (window.location.origin.includes('5173')) {
-      webhookUrl = `http://localhost:3000/webhooks/${pipeline.sourceId}`;
-    }
-    navigator.clipboard.writeText(webhookUrl);
-    addToast('Webhook URL copied', 'success');
+  const handleCopyWebhookUrl = () => {
+    if (!pipeline?.sourceUrl) return;
+    navigator.clipboard.writeText(pipeline.sourceUrl);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   const startEdit = () => {
@@ -240,9 +239,9 @@ export function PipelineDetailPage() {
               </>
             ) : (
               <>
-                <Button variant="secondary" size="sm" onClick={copySourceUrl}>
+                <Button variant="secondary" size="sm" onClick={handleCopyWebhookUrl} disabled={!pipeline.sourceUrl}>
                   <Copy size={14} />
-                  Copy Webhook URL
+                  {isCopied ? 'Copied!' : 'Copy Webhook URL'}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={startEdit}>
                   <Pencil size={14} />
@@ -264,7 +263,31 @@ export function PipelineDetailPage() {
       <div className="mt-6">
         {/* Overview tab */}
         {activeTab === 'overview' && (
-          <CodeBlock code={JSON.stringify(pipeline.actionConfig, null, 2)} />
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Webhook URL</p>
+                  {pipeline.sourceUrl ? (
+                    <p className="text-sm font-mono text-gray-800 truncate">{pipeline.sourceUrl}</p>
+                  ) : (
+                    <p className="text-sm text-gray-400">—</p>
+                  )}
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleCopyWebhookUrl}
+                  disabled={!pipeline.sourceUrl}
+                  className="shrink-0"
+                >
+                  <Copy size={14} />
+                  {isCopied ? 'Copied!' : 'Copy'}
+                </Button>
+              </div>
+            </div>
+            <CodeBlock code={JSON.stringify(pipeline.actionConfig, null, 2)} />
+          </div>
         )}
 
         {/* Subscribers tab */}
