@@ -64,7 +64,7 @@
 
 ### Verification for User Story 2
 
-- [ ] T007 [US2] Manually verify keyboard shortcut containment in the running dashboard per Quickstart Scenario 2 — confirm Ctrl+A selects only editor content (page title and other inputs are NOT selected), Ctrl+Z undoes within editor undo stack (not a browser back-navigation), Ctrl+Shift+Z redoes — document result as a comment in the PR
+- [x] T007 [US2] Manually verify keyboard shortcut containment in the running dashboard per Quickstart Scenario 2 — confirm Ctrl+A selects only editor content (page title and other inputs are NOT selected), Ctrl+Z undoes within editor undo stack (not a browser back-navigation), Ctrl+Shift+Z redoes — document result as a comment in the PR
 
 **Checkpoint**: All three keyboard shortcut behaviours confirmed. US2 complete.
 

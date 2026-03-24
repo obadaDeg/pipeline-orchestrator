@@ -350,6 +350,7 @@ export function PipelineDetailPage() {
                 <CodeEditorInput
                   value={editActionConfig}
                   onChange={(v) => { setEditActionConfig(v); setEditConfigError(null); }}
+                  actionType={pipeline.actionType}
                 />
                 {editConfigError && (
                   <p className="text-xs text-red-600 mt-1">{editConfigError}</p>

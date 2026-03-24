@@ -19,6 +19,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-14
 - PostgreSQL — no schema changes; all required tables already exist (008-dashboard-api-parity)
 - TypeScript 5.4, Node.js 20 LTS + Express 4.x (backend), React 18.3 + Vite 5 (dashboard), Drizzle ORM 0.30, argon2 (password hashing), node:crypto (signing secret generation) (009-demo-seeds-webhook-url)
 - PostgreSQL — no schema changes; all seed data uses existing tables (009-demo-seeds-webhook-url)
+- TypeScript 5.4 (strict mode) (010-code-editor-inputs)
+- N/A — frontend only, no backend changes (010-code-editor-inputs)
 
 - TypeScript 5.x strict mode, Node.js 20 LTS + Express 4.x, BullMQ 5.x + ioredis 5.x, Drizzle ORM 0.30 + pg 8.x, Zod 3.x (001-webhook-pipeline-core)
 
@@ -38,9 +40,9 @@ npm test && npm run lint
 TypeScript 5.x strict mode, Node.js 20 LTS: Follow standard conventions
 
 ## Recent Changes
+- 010-code-editor-inputs: Added TypeScript 5.4 (strict mode)
 - 009-demo-seeds-webhook-url: Added TypeScript 5.4, Node.js 20 LTS + Express 4.x (backend), React 18.3 + Vite 5 (dashboard), Drizzle ORM 0.30, argon2 (password hashing), node:crypto (signing secret generation)
 - 008-dashboard-api-parity: Added TypeScript 5.4, Node.js 20 LTS (backend + frontend) + Express 4.x, Drizzle ORM 0.30, Zod 3.x (backend); React 18.3, React Router v6, TailwindCSS 3.4, Vite 5, Vitest (dashboard)
-- 007-dashboard-ui-tests: Added TypeScript 5.4 (same as dashboard production code)
 
 
 <!-- MANUAL ADDITIONS START -->

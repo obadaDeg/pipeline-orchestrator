@@ -270,6 +270,7 @@ export function PipelineListPage() {
                 setFormActionConfig(v);
                 setFormConfigError(null);
               }}
+              actionType={formActionType}
             />
             {formConfigError && (
               <p className="text-xs text-red-600 mt-1">{formConfigError}</p>
