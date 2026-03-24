@@ -1,6 +1,6 @@
 {
-  "id": "a20fa7a5-7609-4db2-b417-5ce20254d0bb",
-  "prevId": "b1464ac5-d2be-48ee-99c1-84769ee301c1",
+  "id": "bc38830d-2867-4dcc-9e9f-29219857d780",
+  "prevId": "a20fa7a5-7609-4db2-b417-5ce20254d0bb",
   "version": "6",
   "dialect": "postgresql",
   "tables": {
@@ -204,6 +204,12 @@
         },
         "http_status": {
           "name": "http_status",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "response_time_ms": {
+          "name": "response_time_ms",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -501,6 +507,12 @@
         "owner_team_id": {
           "name": "owner_team_id",
           "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rate_limit_per_minute": {
+          "name": "rate_limit_per_minute",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },

@@ -25,6 +25,7 @@ interface DeliveryAttempt {
   id: string;
   outcome: string;
   httpStatus: number | null;
+  responseTimeMs: number | null;
   attemptNumber: number;
   responseSnippet: string | null;
   attemptedAt: string;
@@ -131,6 +132,12 @@ export function JobDetailPage() {
   const isFailed = (outcome: string) =>
     outcome === 'FAILED' || outcome === 'failed';
 
+  const formatResponseTime = (ms: number | null): string => {
+    if (ms === null) return '—';
+    if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`;
+    return `${ms}ms`;
+  };
+
   if (jobLoading) {
     return (
       <div className="animate-pulse space-y-6">
@@ -212,7 +219,11 @@ export function JobDetailPage() {
         <EmptyState
           icon={CheckCircle2}
           heading="No delivery attempts"
-          body="No delivery attempts recorded yet."
+          body={
+            job.status === 'PENDING' || job.status === 'PROCESSING'
+              ? 'Delivery has not started yet.'
+              : 'No deliveries were made for this job.'
+          }
         />
       )}
 
@@ -239,6 +250,9 @@ export function JobDetailPage() {
                     <Badge variant={attempt.outcome} />
                     <span className="text-sm font-mono text-gray-600">
                       {attempt.httpStatus ?? 'N/A'}
+                    </span>
+                    <span className="text-sm text-gray-500 font-mono">
+                      {formatResponseTime(attempt.responseTimeMs)}
                     </span>
                     <span className="text-sm text-gray-400 ml-auto">
                       {formatRelative(attempt.attemptedAt)}

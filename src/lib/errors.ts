@@ -57,3 +57,10 @@ export class ForbiddenError extends AppError {
     this.name = 'ForbiddenError';
   }
 }
+
+export class RateLimitError extends AppError {
+  constructor(public readonly retryAfterSec: number) {
+    super(429, 'RATE_LIMIT_EXCEEDED', `Rate limit exceeded for this pipeline. Retry after ${retryAfterSec} seconds.`);
+    this.name = 'RateLimitError';
+  }
+}

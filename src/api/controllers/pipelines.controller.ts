@@ -5,7 +5,7 @@ import * as pipelineService from '../../services/pipeline.service.js';
 
 export async function createPipeline(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { name, actionType, actionConfig, subscriberUrls, teamId } = req.body;
+    const { name, actionType, actionConfig, subscriberUrls, teamId, rateLimitPerMinute } = req.body;
     const pipeline = await pipelineService.createPipeline({
       name,
       actionType,
@@ -13,6 +13,7 @@ export async function createPipeline(req: Request, res: Response, next: NextFunc
       subscriberUrls,
       ownerUserId: req.user!.id,
       ownerTeamId: teamId,
+      rateLimitPerMinute: rateLimitPerMinute ?? null,
     });
     res.status(201).json(successResponse(pipeline));
   } catch (err) {

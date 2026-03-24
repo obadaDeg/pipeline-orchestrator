@@ -1,8 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { jobs, pipelines } from '../db/schema.js';
-import { NotFoundError } from '../lib/errors.js';
+import { NotFoundError, RateLimitError } from '../lib/errors.js';
 import { webhookQueue } from '../queue/queue.js';
+import { checkRateLimit, DEFAULT_RATE_LIMIT_PER_MINUTE } from './rate-limit.service.js';
 import { verifyWebhookSignature } from './signing.service.js';
 
 export async function ingestWebhook(
@@ -19,6 +20,15 @@ export async function ingestWebhook(
 
   if (!pipeline) {
     throw new NotFoundError('PIPELINE_NOT_FOUND', 'No pipeline found for this source URL');
+  }
+
+  // Enforce per-pipeline rate limit before any DB write
+  const rl = await checkRateLimit(
+    pipeline.sourceId,
+    pipeline.rateLimitPerMinute ?? DEFAULT_RATE_LIMIT_PER_MINUTE,
+  );
+  if (!rl.allowed) {
+    throw new RateLimitError(rl.retryAfterSec);
   }
 
   // Verify signature before any DB write — rejects unsigned/invalid requests early

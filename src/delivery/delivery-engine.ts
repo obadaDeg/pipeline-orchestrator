@@ -27,6 +27,7 @@ export async function runDelivery(
         subscriberId: subscriber.id,
         subscriberUrl: subscriber.url,
         httpStatus: result.httpStatus,
+        responseTimeMs: result.responseTimeMs,
         responseSnippet: result.responseSnippet,
         attemptNumber: attempt,
         outcome: result.success ? 'SUCCESS' : 'FAILED',

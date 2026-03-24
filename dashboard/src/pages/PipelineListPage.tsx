@@ -44,6 +44,7 @@ export function PipelineListPage() {
   const [formActionConfig, setFormActionConfig] = useState('{}');
   const [formSubscribers, setFormSubscribers] = useState('');
   const [formTeamId, setFormTeamId] = useState('');
+  const [formRateLimit, setFormRateLimit] = useState('60');
   const [formConfigError, setFormConfigError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
 
@@ -79,6 +80,7 @@ export function PipelineListPage() {
     setFormActionConfig('{}');
     setFormSubscribers('');
     setFormTeamId('');
+    setFormRateLimit('60');
     setFormConfigError(null);
   };
 
@@ -111,6 +113,7 @@ export function PipelineListPage() {
           actionType: formActionType,
           actionConfig: JSON.parse(formActionConfig),
           subscriberUrls,
+          rateLimitPerMinute: Number(formRateLimit),
           ...(formTeamId ? { teamId: formTeamId } : {}),
         }),
       });
@@ -288,6 +291,19 @@ export function PipelineListPage() {
               value={formSubscribers}
               onChange={(e) => setFormSubscribers(e.target.value)}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Rate limit (req/min)</label>
+            <input
+              type="number"
+              min={1}
+              max={1000}
+              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              value={formRateLimit}
+              onChange={(e) => setFormRateLimit(e.target.value)}
+            />
+            <p className="text-xs text-gray-400 mt-1">Default: 60. Max: 1000.</p>
           </div>
         </form>
       </SlideOver>

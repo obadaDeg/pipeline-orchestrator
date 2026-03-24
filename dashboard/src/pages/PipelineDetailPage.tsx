@@ -24,6 +24,7 @@ interface Pipeline {
   description?: string;
   actionType: string;
   actionConfig: Record<string, unknown>;
+  rateLimitPerMinute: number | null;
   subscribers: Array<{ id?: string; url: string }> | number;
   createdAt: string;
 }
@@ -66,6 +67,7 @@ export function PipelineDetailPage() {
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editActionConfig, setEditActionConfig] = useState('');
+  const [editRateLimit, setEditRateLimit] = useState('');
   const [editNameError, setEditNameError] = useState<string | null>(null);
   const [editConfigError, setEditConfigError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -182,6 +184,7 @@ export function PipelineDetailPage() {
     setEditName(pipeline.name);
     setEditDescription(pipeline.description ?? '');
     setEditActionConfig(JSON.stringify(pipeline.actionConfig, null, 2));
+    setEditRateLimit(String(pipeline.rateLimitPerMinute ?? 60));
     setEditNameError(null);
     setEditConfigError(null);
     setIsEditing(true);
@@ -213,6 +216,7 @@ export function PipelineDetailPage() {
           name: editName.trim(),
           description: editDescription.trim() || undefined,
           actionConfig: parsedConfig,
+          rateLimitPerMinute: Number(editRateLimit) || null,
         }),
       });
       setPipeline(updated);
@@ -343,6 +347,28 @@ export function PipelineDetailPage() {
                   {isCopied ? 'Copied!' : 'Copy'}
                 </Button>
               </div>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Rate limit</p>
+              {isEditing ? (
+                <div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    className="block w-48 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    value={editRateLimit}
+                    onChange={(e) => setEditRateLimit(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Default: 60. Max: 1000.</p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-800">
+                  {pipeline.rateLimitPerMinute !== null
+                    ? `${pipeline.rateLimitPerMinute} req/min`
+                    : '60 req/min (default)'}
+                </p>
+              )}
             </div>
             {isEditing ? (
               <div>

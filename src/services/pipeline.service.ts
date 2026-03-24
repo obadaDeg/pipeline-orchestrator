@@ -14,12 +14,14 @@ export interface CreatePipelineInput {
   subscriberUrls: string[];
   ownerUserId: string;
   ownerTeamId?: string;
+  rateLimitPerMinute?: number | null;
 }
 
 export interface UpdatePipelineInput {
   name?: string;
   actionConfig?: Record<string, unknown>;
   subscriberUrls?: string[];
+  rateLimitPerMinute?: number | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -38,6 +40,7 @@ function formatPipeline(pipeline: PipelineRow, subs: SubscriberRow[]) {
     sourceUrl: buildSourceUrl(pipeline.sourceId),
     actionType: pipeline.actionType,
     actionConfig: pipeline.actionConfig,
+    rateLimitPerMinute: pipeline.rateLimitPerMinute ?? null,
     subscribers: subs.map((s) => ({ id: s.id, url: s.url, createdAt: s.createdAt })),
     createdAt: pipeline.createdAt,
     updatedAt: pipeline.updatedAt,
@@ -89,6 +92,7 @@ export async function createPipeline(input: CreatePipelineInput) {
         // Team pipeline: ownerTeamId set, ownerUserId null. Personal: vice versa.
         ownerUserId: input.ownerTeamId ? null : input.ownerUserId,
         ownerTeamId: input.ownerTeamId ?? null,
+        rateLimitPerMinute: input.rateLimitPerMinute ?? null,
       })
       .returning();
 
@@ -149,11 +153,12 @@ export async function updatePipeline(id: string, input: UpdatePipelineInput, use
   if (!existing) throw new NotFoundError('PIPELINE_NOT_FOUND', 'Pipeline not found');
 
   return db.transaction(async (tx) => {
-    const updates: { name?: string; actionConfig?: unknown; updatedAt: Date } = {
+    const updates: { name?: string; actionConfig?: unknown; rateLimitPerMinute?: number | null; updatedAt: Date } = {
       updatedAt: new Date(),
     };
     if (input.name !== undefined) updates.name = input.name;
     if (input.actionConfig !== undefined) updates.actionConfig = input.actionConfig;
+    if (input.rateLimitPerMinute !== undefined) updates.rateLimitPerMinute = input.rateLimitPerMinute;
 
     const [updated] = await tx
       .update(pipelines)

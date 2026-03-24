@@ -22,6 +22,13 @@
       "when": 1774143903521,
       "tag": "0002_blue_war_machine",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1774328614224,
+      "tag": "0003_add-response-time-and-rate-limit",
+      "breakpoints": true
     }
   ]
 }

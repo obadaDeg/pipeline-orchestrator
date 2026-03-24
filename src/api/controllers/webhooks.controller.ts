@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { MethodNotAllowedError } from '../../lib/errors.js';
+import { MethodNotAllowedError, RateLimitError } from '../../lib/errors.js';
 import { successResponse } from '../../lib/response.js';
 import { ingestWebhook } from '../../services/ingestion.service.js';
 
@@ -14,6 +14,13 @@ export async function receiveWebhook(
     const result = await ingestWebhook(req.params.sourceId, req.rawBody ?? '', signatureHeader, timestampHeader);
     res.status(202).json(successResponse(result));
   } catch (err) {
+    if (err instanceof RateLimitError) {
+      res
+        .status(429)
+        .set('Retry-After', String(err.retryAfterSec))
+        .json({ error: { code: err.code, message: err.message } });
+      return;
+    }
     next(err);
   }
 }

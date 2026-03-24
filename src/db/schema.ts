@@ -8,7 +8,9 @@ import {
   timestamp,
   index,
   uniqueIndex,
+  check,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -154,6 +156,7 @@ export const pipelines = pgTable(
     ownerUserId: uuid('owner_user_id').references(() => users.id, { onDelete: 'set null' }),
     /** Team ownership: set when a pipeline is created under a team workspace. */
     ownerTeamId: uuid('owner_team_id').references(() => teams.id, { onDelete: 'set null' }),
+    rateLimitPerMinute: integer('rate_limit_per_minute'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
@@ -164,6 +167,10 @@ export const pipelines = pgTable(
     sourceIdIdx: uniqueIndex('idx_pipelines_source_id').on(table.sourceId),
     ownerUserIdIdx: index('idx_pipelines_owner_user_id').on(table.ownerUserId),
     ownerTeamIdIdx: index('idx_pipelines_owner_team_id').on(table.ownerTeamId),
+    rateLimitCheck: check(
+      'pipelines_rate_limit_check',
+      sql`${table.rateLimitPerMinute} IS NULL OR (${table.rateLimitPerMinute} >= 1 AND ${table.rateLimitPerMinute} <= 1000)`,
+    ),
   }),
 );
 
@@ -223,6 +230,7 @@ export const deliveryAttempts = pgTable(
     }),
     subscriberUrl: text('subscriber_url').notNull(),
     httpStatus: integer('http_status'),
+    responseTimeMs: integer('response_time_ms'),
     responseSnippet: text('response_snippet'),
     attemptNumber: integer('attempt_number').notNull(),
     outcome: deliveryOutcomeEnum('outcome').notNull(),
