@@ -21,7 +21,7 @@ export function CodeBlock({ code, language = 'json' }: CodeBlockProps) {
   }, [code, language]);
 
   return (
-    <pre className="rounded-lg overflow-x-auto text-sm border border-gray-200 bg-gray-50">
+    <pre className="rounded-lg overflow-x-auto text-[13px] border border-gray-200 bg-[#f6f8fa]">
       <code ref={ref} />
     </pre>
   );
