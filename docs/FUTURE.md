@@ -127,6 +127,160 @@ This makes the status field self-documenting and allows filtering at the query l
 
 ---
 
+## 12. Schema Design Decisions to Revisit
+
+This section captures specific data model choices I made early that I'd reconsider as the system grows — and a few areas where I think my current design is already the right call long-term.
+
+---
+
+### 12a. Jobs — Payload Storage: `text` vs `jsonb`
+
+**Current state**: I store the raw webhook body as `text` (`raw_payload`) and the processed result as a separate `jsonb` column (`processed_payload`).
+
+**Why I did it this way**: Storing the raw bytes as `text` is required for HMAC signature verification — hashing the parsed JSON would not match the original signature, since key order and whitespace could differ after serialization. Preserving the exact byte sequence is a correctness requirement, not a preference.
+
+**The tradeoff**: `text` can't be queried with JSONB operators. If I ever want to filter jobs by payload field values (e.g. `WHERE raw_payload->>'event' = 'push'`), I'd need to either cast at query time or add a separate `jsonb` column for queryable payload data.
+
+**Future direction**: Keep `raw_payload` as `text` for signature integrity. Consider adding a parsed `payload_data jsonb` column populated on ingest for query convenience, if that need arises.
+
+---
+
+### 12b. Jobs — Delivery Tracking Fields
+
+**Current state**: The `jobs` table has no visibility into delivery fan-out. There's no way to tell from the job record alone how many subscribers were targeted vs how many were actually reached.
+
+**Why I'd add this**: Without `subscriber_count` and `total_deliveries` columns on `jobs`, detecting partial delivery failures requires querying and aggregating `delivery_attempts` — an extra join for every health check. Denormalizing these counters onto the job row makes anomaly detection cheap.
+
+```sql
+-- Future columns on jobs
+subscriber_count   integer,          -- set at fan-out time
+total_deliveries   integer default 0 -- incremented per attempt
+```
+
+A job where `total_deliveries < subscriber_count` after completion is a silent partial failure — something the current schema cannot surface without a full aggregation query.
+
+---
+
+### 12c. Jobs — Partial Indexes vs Full Status Index
+
+**Current state**: I have a full B-tree index on `status`. Every status value shares one index.
+
+**Why partial indexes are better at scale**: The worker primarily queries for `PENDING` jobs, and monitoring queries look for `FAILED` jobs. A full index on `status` includes all completed jobs — which will be the overwhelming majority over time and add bloat to every index scan.
+
+**Future direction**: Replace the full `status` index with targeted partial indexes:
+
+```sql
+CREATE INDEX idx_jobs_pending ON jobs (created_at) WHERE status = 'PENDING';
+CREATE INDEX idx_jobs_failed  ON jobs (updated_at) WHERE status = 'FAILED';
+```
+
+These are smaller, faster for their specific query patterns, and don't grow as completed jobs accumulate.
+
+---
+
+### 12d. Jobs — `completed_at` Timestamp
+
+**Current state**: Job completion time is inferred from `updated_at`. There's no dedicated `completed_at` column.
+
+**Why a dedicated column matters**: `updated_at` gets touched on every status transition and error update — not just completion. Inferring completion time from it is fragile if the job is ever touched after reaching a terminal state. A dedicated `completed_at` column makes end-to-end latency queries unambiguous:
+
+```sql
+SELECT AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) * 1000) AS avg_ms
+FROM jobs WHERE completed_at IS NOT NULL;
+```
+
+---
+
+### 12e. Pipelines — UUID Slug vs Human-Readable `source_path`
+
+**Current state**: My ingest URL uses a random UUID as the webhook slug (`/webhooks/:sourceId`). The UUID is auto-generated and never user-defined.
+
+**Why I prefer this**: A UUID is unguessable. A human-readable slug like `customer-created` is predictable — anyone who knows the naming convention can attempt to POST to pipelines they don't own. For a multi-tenant system where pipelines are scoped to users and teams, the UUID slug is a meaningful second layer of obscurity.
+
+**The tradeoff**: UUIDs are not memorable or debuggable. When reading logs, `/webhooks/550e8400-e29b-41d4-a716-446655440000` is harder to correlate to a pipeline than `/webhooks/github-events`.
+
+**Future direction**: Keep the UUID slug as the canonical ingest URL. Optionally add a read-only `name_slug` (derived from pipeline name, display-only) that is shown in the dashboard alongside the full UUID URL — best of both worlds.
+
+---
+
+### 12f. Pipelines — Signing Secret as Separate Table
+
+**Current state**: Signing secrets live in `pipeline_signing_secrets`, a separate table with a unique FK to `pipelines`. This supports full rotation — generating a new secret doesn't touch the pipeline row itself.
+
+**Why this is the right call**: Storing the secret directly on the pipeline row (as a `secret text` column) means rotation requires an `UPDATE` on the pipeline — touching `updated_at`, potentially invalidating caches, and conflating two different concerns (pipeline config vs credential management). A dedicated table cleanly separates the credential lifecycle from the pipeline lifecycle and will make future features like secret history or grace-period rotation (accepting both old and new secret briefly) much easier to implement.
+
+**This design is intentionally kept as-is.**
+
+---
+
+### 12g. Subscribers — Missing Outbound Signing Secret
+
+**Current state**: The `subscribers` table has only `id`, `pipeline_id`, `url`, and timestamps. There is no secret stored per subscriber.
+
+**Why this matters**: Subscribers receive delivery payloads but have no way to verify the request came from this system. Adding a `secret text` column per subscriber enables signing each outbound delivery with `X-Delivery-Signature` — giving subscribers a verification mechanism symmetric to what this system uses for inbound webhook verification.
+
+**Future direction**: Add `secret text` and `nickname text` to the `subscribers` table. Generate a default secret on subscriber creation (like pipeline signing secrets). Surface the secret in the dashboard subscriber management UI.
+
+---
+
+### 12h. Delivery Attempts — `pending` Status and Scheduling Fields
+
+**Current state**: Delivery attempts are only recorded after the attempt executes. There is no pre-insertion for scheduled attempts.
+
+**Why pre-inserting attempts is useful**: Recording a delivery attempt as `pending` at the moment it's enqueued — before the HTTP request fires — gives complete audit coverage. If the worker crashes between enqueue and execution, the orphaned `pending` row makes the gap visible in the audit log.
+
+**Future direction**: Add a `scheduled_for timestamp` and `delivered_at timestamp` to `delivery_attempts`. Insert the row as `pending` when the delivery task is enqueued; update to `delivered`/`failed` when it resolves. This turns the delivery attempts table into a complete timeline, not just a success/failure log.
+
+---
+
+### 12i. Delivery Attempts — Subscriber URL Denormalization
+
+**Current state**: `delivery_attempts` stores `subscriber_url text` at the time of the attempt. If a subscriber's URL is later updated or the subscriber is deleted, the historical attempt record still shows the URL that was actually used.
+
+**Why this matters**: This is a deliberate audit decision — preserving the exact URL that was called makes the delivery history immutable and trustworthy. A FK-only approach would silently lose this context if the subscriber is deleted with CASCADE. I use `SET NULL` on `subscriber_id` so the FK becomes null on deletion while the denormalized `subscriber_url` remains intact.
+
+**This design is intentionally kept as-is.**
+
+---
+
+### 12j. Schema Organization — Single File vs Per-Table Modules
+
+**Current state**: All tables are defined in a single `src/db/schema.ts` file.
+
+**Why splitting is better at scale**: A single schema file becomes unwieldy past ~5 tables. Splitting into `schema/pipelines.ts`, `schema/jobs.ts`, `schema/subscribers.ts`, etc. — with a `schema/relations.ts` to handle cross-table Drizzle relations (which need to be defined separately to avoid circular imports) — makes the schema easier to navigate and review.
+
+**Future direction**: Refactor into per-table modules when the schema grows beyond its current size. Keep relations in a dedicated `relations.ts` file.
+
+---
+
+### 12k. Timestamps — Timezone Awareness
+
+**Current state**: All timestamps use `{ withTimezone: true }`, storing as `timestamptz` in PostgreSQL.
+
+**Why this is the right call**: `timestamp without time zone` stores local time with no offset context. When the server timezone changes, or when data is queried from a different locale, values become ambiguous. `timestamptz` stores UTC internally and converts on read — unambiguous regardless of where the query originates.
+
+**This design is intentionally kept as-is.**
+
+---
+
+### Summary of Schema Decisions
+
+| Area | Current design | Future change? |
+|------|---------------|----------------|
+| Payload storage (`text` vs `jsonb`) | `text` for signature integrity + `jsonb` for result | Keep; optionally add `payload_data jsonb` |
+| Delivery tracking on jobs | Not tracked | Add `subscriber_count` + `total_deliveries` |
+| Job status index | Full index on `status` | Replace with partial indexes |
+| `completed_at` column | Inferred from `updated_at` | Add dedicated column |
+| Ingest URL slug | UUID (unguessable) | Keep; add display slug optionally |
+| Signing secret storage | Separate table (rotation-ready) | Keep |
+| Subscriber outbound secret | Missing | Add `secret` + `nickname` |
+| Delivery attempt pre-insertion | Not done | Add `pending` status + `scheduled_for` |
+| Subscriber URL denormalization | Done (intentional) | Keep |
+| Schema file organization | Single file | Split when schema grows |
+| Timestamps | `timestamptz` everywhere | Keep |
+
+---
+
 ## Summary
 
 | Improvement | Impact | Complexity |
