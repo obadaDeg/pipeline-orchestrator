@@ -304,6 +304,121 @@ Go to the pipeline → Jobs tab → the new job is `COMPLETED` with processed pa
 
 ---
 
+## 12. Real GitHub Integration (Live Push → Pipeline)
+
+This turns the demo into a live system — every push to your GitHub repo triggers a real job.
+
+### Step 1 — Install ngrok and expose the API
+
+```bash
+# Install ngrok (one-time)
+npm install -g ngrok
+# or: winget install ngrok  /  brew install ngrok
+
+# Authenticate (free account at https://ngrok.com)
+ngrok config add-authtoken <your-token>
+
+# Start the tunnel
+ngrok http 4000
+```
+
+Copy the `https://xxxx.ngrok-free.app` URL from the ngrok output.
+
+### Step 2 — Start the subscriber server
+
+The subscriber server receives processed deliveries and pretty-prints them to your terminal.
+
+```bash
+node examples/subscriber-server/index.mjs
+# Listening on http://localhost:5050
+```
+
+In a new terminal, register it as a subscriber on the GitHub Events pipeline:
+
+```bash
+API_KEY="wh_..."   # your demo API key
+GH_PIPELINE_ID="9b6a020e-9ff6-4414-b962-dfc295a6e92d"   # GitHub Events pipeline
+
+curl -s -X POST "http://localhost:4000/pipelines/$GH_PIPELINE_ID/subscribers" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"http://host.docker.internal:5050"}'
+# The worker runs inside Docker, so it reaches your host at host.docker.internal
+```
+
+### Step 3 — Register the GitHub webhook
+
+You need a [GitHub Personal Access Token](https://github.com/settings/tokens) with `repo` scope.
+
+```bash
+# Get the signing secret for the GitHub Events pipeline from the DB
+SECRET=$(PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres \
+  -d pipeline_orchestrator -t \
+  -c "SELECT pss.secret_value FROM pipeline_signing_secrets pss JOIN pipelines p ON p.id = pss.pipeline_id WHERE p.name = 'GitHub Events';" \
+  | tr -d ' \n')
+
+# Get the pipeline source UUID
+GH_SOURCE_ID=$(curl -s http://localhost:4000/pipelines \
+  -H "Authorization: Bearer $API_KEY" \
+  | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{ \
+      const p=JSON.parse(d).data.items.find(x=>x.name==='GitHub Events'); \
+      console.log(p.sourceUrl.split('/').pop()); })")
+
+# Register the webhook on your repo
+GITHUB_TOKEN=ghp_... \
+GITHUB_REPO=obadaDeg/pipeline-orchestrator \
+TUNNEL_URL=https://xxxx.ngrok-free.app \
+PIPELINE_SOURCE_ID=$GH_SOURCE_ID \
+WEBHOOK_SECRET=$SECRET \
+node examples/github-integration/setup.mjs
+```
+
+### Step 4 — Push a commit and watch it flow
+
+```bash
+git commit --allow-empty -m "demo: trigger webhook pipeline"
+git push origin main
+```
+
+**What happens next:**
+1. GitHub sends `POST https://xxxx.ngrok-free.app/webhooks/<sourceId>` with a signed payload
+2. ngrok forwards it to `localhost:4000`
+3. The API verifies the HMAC signature → creates a job → enqueues to BullMQ
+4. The worker picks it up → applies the `field_extractor` action (extracts `event`, `repo`, `ref`)
+5. The processed result is delivered to your subscriber server on `:5050`
+6. Your terminal shows the pretty-printed delivery in real time
+7. The dashboard updates — new `COMPLETED` job in the GitHub Events pipeline
+
+**In the dashboard** (`http://localhost:5173`):
+- **Pipelines → GitHub Events → Jobs tab** → new job with your commit metadata
+- **Stats page** → Jobs Today counter increments
+- **Job detail** → shows original GitHub payload vs extracted fields side-by-side
+
+### Step 5 — Trigger different events
+
+```bash
+# Create and push a new branch (triggers push event)
+git checkout -b demo/live-test
+git push origin demo/live-test
+
+# Create a release tag (triggers release event)
+git tag v1.0.0-demo && git push origin v1.0.0-demo
+```
+
+Each one creates a new job. The subscriber server terminal shows each delivery arrive.
+
+### Cleanup
+
+```bash
+# Delete the GitHub webhook when done
+GITHUB_TOKEN=ghp_... \
+GITHUB_REPO=obadaDeg/pipeline-orchestrator \
+HOOK_ID=<hook-id-from-setup-output> \
+node examples/github-integration/delete.mjs
+```
+
+---
+
 ## Quick Reference
 
 | What | Where |
