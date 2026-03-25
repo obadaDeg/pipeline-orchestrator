@@ -29,6 +29,13 @@
       "when": 1774328614224,
       "tag": "0003_add-response-time-and-rate-limit",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1742860800000,
+      "tag": "0004_add-retry-count-and-job-retried-event",
+      "breakpoints": true
     }
   ]
 }

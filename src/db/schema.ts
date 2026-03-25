@@ -34,6 +34,7 @@ export const auditEventTypeEnum = pgEnum('audit_event_type', [
   'TEAM_MEMBER_REMOVED',
   'USER_REGISTERED',
   'SIGNATURE_FAILED',
+  'JOB_RETRIED',
 ]);
 
 // ─── users ────────────────────────────────────────────────────────────────────
@@ -201,6 +202,7 @@ export const jobs = pgTable(
     rawPayload: text('raw_payload').notNull(),
     processedPayload: jsonb('processed_payload'),
     status: jobStatusEnum('status').notNull().default('PENDING'),
+    retryCount: integer('retry_count').notNull().default(0),
     errorMessage: text('error_message'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true })

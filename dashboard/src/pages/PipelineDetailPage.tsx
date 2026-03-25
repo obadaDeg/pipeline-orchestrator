@@ -1,4 +1,4 @@
-import { Briefcase, Copy, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Briefcase, Copy, Pencil, RefreshCw, Trash2, X, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '../components/Badge';
@@ -32,6 +32,7 @@ interface Pipeline {
 interface Job {
   id: string;
   status: string;
+  retryCount: number;
   rawPayload: string;
   createdAt: string;
 }
@@ -76,6 +77,7 @@ export function PipelineDetailPage() {
   const [jobsError, setJobsError] = useState<string | null>(null);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [retryingJobId, setRetryingJobId] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [isCopied, setIsCopied] = useState(false);
@@ -109,6 +111,23 @@ export function PipelineDetailPage() {
       setJobsError(err instanceof Error ? err.message : 'Failed to load jobs');
     } finally {
       setJobsLoading(false);
+    }
+  };
+
+  const handleRetryJob = async (jobId: string) => {
+    setRetryingJobId(jobId);
+    try {
+      const updated = await apiFetch<Job>(`/jobs/${jobId}/retry`, { method: 'POST' });
+      setJobs((prev) =>
+        prev
+          ? { ...prev, items: prev.items.map((j) => (j.id === jobId ? { ...j, ...updated } : j)) }
+          : prev,
+      );
+      addToast('Job re-queued for processing', 'success');
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : 'Failed to retry job', 'error');
+    } finally {
+      setRetryingJobId(null);
     }
   };
 
@@ -455,12 +474,13 @@ export function PipelineDetailPage() {
                       <th className="py-3 px-3 text-left text-xs font-medium text-gray-500 uppercase">Job ID</th>
                       <th className="py-3 px-3 text-left text-xs font-medium text-gray-500 uppercase">Received</th>
                       <th className="py-3 px-3 text-left text-xs font-medium text-gray-500 uppercase">Payload</th>
+                      <th className="py-3 px-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    <SkeletonRow columns={4} />
-                    <SkeletonRow columns={4} />
-                    <SkeletonRow columns={4} />
+                    <SkeletonRow columns={5} />
+                    <SkeletonRow columns={5} />
+                    <SkeletonRow columns={5} />
                   </tbody>
                 </table>
               </div>
@@ -487,13 +507,21 @@ export function PipelineDetailPage() {
                       <th className="py-3 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job ID</th>
                       <th className="py-3 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Received</th>
                       <th className="py-3 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payload</th>
+                      <th className="py-3 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {jobs.items.map((job) => (
                       <tr key={job.id} className="hover:bg-gray-50 transition-colors">
                         <td className="py-4 px-3 text-sm">
-                          <Badge variant={job.status} />
+                          <div className="flex items-center gap-2">
+                            <Badge variant={job.status} />
+                            {job.retryCount > 0 && (
+                              <span className="text-xs text-gray-400">
+                                {job.retryCount} {job.retryCount === 1 ? 'retry' : 'retries'}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-4 px-3 text-sm font-mono">
                           <Link to={`/jobs/${job.id}`} className="text-indigo-600 hover:text-indigo-800">
@@ -507,6 +535,19 @@ export function PipelineDetailPage() {
                           {job.rawPayload?.length > 80
                             ? job.rawPayload.substring(0, 80) + '…'
                             : job.rawPayload}
+                        </td>
+                        <td className="py-4 px-3 text-sm">
+                          {job.status === 'FAILED' && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              loading={retryingJobId === job.id}
+                              onClick={() => handleRetryJob(job.id)}
+                            >
+                              <RefreshCw size={12} />
+                              Retry
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))}

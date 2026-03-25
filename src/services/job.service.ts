@@ -1,7 +1,8 @@
-import { asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { deliveryAttempts, jobs, pipelines } from '../db/schema.js';
-import { NotFoundError } from '../lib/errors.js';
+import { auditEvents, deliveryAttempts, jobs, pipelines } from '../db/schema.js';
+import { AppError, NotFoundError } from '../lib/errors.js';
+import { webhookQueue } from '../queue/queue.js';
 import { getUserTeamIds } from './team.service.js';
 
 export async function getJobById(id: string) {
@@ -64,6 +65,7 @@ export async function listJobs(
       id: jobs.id,
       pipelineId: jobs.pipelineId,
       status: jobs.status,
+      retryCount: jobs.retryCount,
       errorMessage: jobs.errorMessage,
       createdAt: jobs.createdAt,
       updatedAt: jobs.updatedAt,
@@ -95,6 +97,7 @@ export async function listJobsForPipeline(pipelineId: string, page: number, limi
       id: jobs.id,
       pipelineId: jobs.pipelineId,
       status: jobs.status,
+      retryCount: jobs.retryCount,
       errorMessage: jobs.errorMessage,
       createdAt: jobs.createdAt,
       updatedAt: jobs.updatedAt,
@@ -106,6 +109,52 @@ export async function listJobsForPipeline(pipelineId: string, page: number, limi
     .offset(offset);
 
   return { items: rows, total, page, limit };
+}
+
+export async function retryJob(jobId: string, userId: string) {
+  const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId));
+  if (!job) throw new NotFoundError('JOB_NOT_FOUND', 'Job not found');
+
+  // Job must belong to an accessible pipeline
+  if (!job.pipelineId) throw new NotFoundError('JOB_NOT_FOUND', 'Job not found');
+
+  const teamIds = await getUserTeamIds(userId);
+  const personalFilter = eq(pipelines.ownerUserId, userId);
+  const visibilityFilter =
+    teamIds.length > 0
+      ? or(personalFilter, inArray(pipelines.ownerTeamId, teamIds))!
+      : personalFilter;
+
+  const [pipeline] = await db
+    .select()
+    .from(pipelines)
+    .where(and(eq(pipelines.id, job.pipelineId), visibilityFilter));
+
+  if (!pipeline) throw new NotFoundError('JOB_NOT_FOUND', 'Job not found');
+
+  if (job.status !== 'FAILED') {
+    throw new AppError(409, 'JOB_NOT_RETRYABLE', 'Only jobs with status FAILED can be retried');
+  }
+
+  const [updated] = await db.transaction(async (tx) => {
+    const rows = await tx
+      .update(jobs)
+      .set({ status: 'PENDING', retryCount: job.retryCount + 1, errorMessage: null, updatedAt: new Date() })
+      .where(eq(jobs.id, jobId))
+      .returning();
+
+    await tx.insert(auditEvents).values({
+      userId,
+      eventType: 'JOB_RETRIED',
+      metadata: { jobId, pipelineId: job.pipelineId, retryCount: job.retryCount + 1 },
+    });
+
+    return rows;
+  });
+
+  await webhookQueue.add('process-webhook', { jobId, pipelineId: job.pipelineId });
+
+  return updated;
 }
 
 export async function getDeliveryAttempts(

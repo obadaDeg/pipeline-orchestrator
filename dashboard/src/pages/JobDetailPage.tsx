@@ -14,6 +14,7 @@ interface Job {
   id: string;
   pipelineId: string;
   status: string;
+  retryCount: number;
   rawPayload: string;
   processedPayload: unknown;
   errorMessage: string | null;
@@ -174,6 +175,9 @@ export function JobDetailPage() {
           <span className="flex items-center gap-1">
             <Clock size={14} />
             Updated {formatRelative(job.updatedAt)}
+          </span>
+          <span className="flex items-center gap-1">
+            Retries: <strong className="text-gray-700">{job.retryCount}</strong>
           </span>
         </div>
 

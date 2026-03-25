@@ -12,6 +12,7 @@ import { LoginPage } from './pages/LoginPage';
 import { PipelineDetailPage } from './pages/PipelineDetailPage';
 import { PipelineListPage } from './pages/PipelineListPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { StatsPage } from './pages/StatsPage';
 import { TeamDetailPage } from './pages/TeamDetailPage';
 import { TeamsPage } from './pages/TeamsPage';
 
@@ -45,6 +46,7 @@ export default function App() {
               <Route path="/pipelines/:id" element={<PipelineDetailPage />} />
               <Route path="/jobs" element={<JobsPage />} />
               <Route path="/jobs/:id" element={<JobDetailPage />} />
+              <Route path="/stats" element={<StatsPage />} />
               <Route path="/account" element={<AccountPage />} />
               <Route path="/teams" element={<TeamsPage />} />
               <Route path="/teams/:id" element={<TeamDetailPage />} />

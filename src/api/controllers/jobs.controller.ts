@@ -51,3 +51,12 @@ export async function getDeliveryAttempts(
     next(err);
   }
 }
+
+export async function retryJob(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const job = await jobService.retryJob(req.params.id, req.user!.id);
+    res.status(200).json(successResponse(job));
+  } catch (err) {
+    next(err);
+  }
+}

@@ -1,10 +1,11 @@
-import { Briefcase, LogOut, User, Users, Zap } from 'lucide-react';
+import { BarChart2, Briefcase, LogOut, User, Users, Zap } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const navItems = [
   { to: '/', label: 'Pipelines', icon: Zap, end: true },
   { to: '/jobs', label: 'Jobs', icon: Briefcase, end: false },
+  { to: '/stats', label: 'Stats', icon: BarChart2, end: false },
   { to: '/teams', label: 'Teams', icon: Users, end: false },
   { to: '/account', label: 'Account', icon: User, end: false },
 ];

@@ -9,6 +9,7 @@ import { errorHandler } from './middleware/error-handler.js';
 import { authRouter } from './routes/auth.router.js';
 import { jobsRouter } from './routes/jobs.router.js';
 import { pipelinesRouter } from './routes/pipelines.router.js';
+import { statsRouter } from './routes/stats.router.js';
 import { teamsRouter } from './routes/teams.router.js';
 import { webhooksRouter } from './routes/webhooks.router.js';
 
@@ -25,6 +26,7 @@ app.use(express.json());
 app.use('/auth', authRouter);
 app.use('/pipelines', pipelinesRouter);
 app.use('/jobs', jobsRouter);
+app.use('/stats', statsRouter);
 app.use('/teams', teamsRouter);
 
 // Dashboard SPA — serve static assets and catch-all for client-side routing
