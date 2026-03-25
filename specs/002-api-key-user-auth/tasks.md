@@ -56,12 +56,12 @@ description: "Task list for 002-api-key-user-auth"
 - [x] T010 [US1] Create Zod schemas for `POST /auth/register` (email, password) and `POST /auth/login` (email, password) in `src/api/schemas/auth.schema.ts`
 - [x] T011 [US1] Implement `register(email, password)` — argon2id hash password, create user row, call `createApiKey()` with name "Default", return user + full key — in `src/services/auth.service.ts`
 - [x] T012 [US1] Implement `validateApiKey(rawKey)` — SHA-256 hash the key, look up `api_keys` by `key_hash` where `revoked_at IS NULL`, join to `users`, return user or null — in `src/services/auth.service.ts`
-- [ ] T013 [US1] Implement `authenticate` Express middleware — extract `Authorization: Bearer <key>`, call `validateApiKey()`, attach `req.user` on success, call `next(new UnauthorizedError(...))` on failure, fire-and-forget `last_used_at` update — in `src/api/middleware/authenticate.ts`
-- [ ] T014 [P] [US1] Implement auth controller handlers: `registerHandler` (calls `auth.service.register`, returns 201 with user + key) and `loginHandler` (validates password with argon2.verify, creates new key, returns 201) in `src/api/controllers/auth.controller.ts`
+- [x] T013 [US1] Implement `authenticate` Express middleware — extract `Authorization: Bearer <key>`, call `validateApiKey()`, attach `req.user` on success, call `next(new UnauthorizedError(...))` on failure, fire-and-forget `last_used_at` update — in `src/api/middleware/authenticate.ts`
+- [x] T014 [P] [US1] Implement auth controller handlers: `registerHandler` (calls `auth.service.register`, returns 201 with user + key) and `loginHandler` (validates password with argon2.verify, creates new key, returns 201) in `src/api/controllers/auth.controller.ts`
 - [x] T015 [US1] Create auth router with `POST /auth/register` and `POST /auth/login` routes (no auth middleware on these two) in `src/api/routes/auth.router.ts`
-- [ ] T016 [US1] Register auth router at `/auth` prefix in `src/api/server.ts`
+- [x] T016 [US1] Register auth router at `/auth` prefix in `src/api/server.ts`
 - [x] T017 [P] [US1] Write unit tests for `src/lib/api-key.ts`: key format (`wh_` prefix), key length, prefix extraction, hash determinism, hash distinctness in `tests/unit/auth/api-key.test.ts`
-- [ ] T018 [P] [US1] Write unit tests for `authenticate` middleware: valid key → `req.user` set, revoked key → 401, missing header → 401, malformed header → 401 in `tests/unit/auth/authenticate.test.ts`
+- [x] T018 [P] [US1] Write unit tests for `authenticate` middleware: valid key → `req.user` set, revoked key → 401, missing header → 401, malformed header → 401 in `tests/unit/auth/authenticate.test.ts`
 
 **Checkpoint**: `POST /auth/register` returns a usable API key. All subsequent requests with `Authorization: Bearer <key>` are authenticated.
 
