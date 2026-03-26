@@ -11,11 +11,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/auth': 'http://localhost:3000',
-      '/pipelines': 'http://localhost:3000',
-      '/jobs': 'http://localhost:3000',
-      '/teams': 'http://localhost:3000',
-      '/webhooks': 'http://localhost:3000',
+      '/auth': 'http://localhost:4000',
+      '/pipelines': 'http://localhost:4000',
+      '/jobs': 'http://localhost:4000',
+      '/teams': 'http://localhost:4000',
+      '/webhooks': 'http://localhost:4000',
     },
   },
 });

@@ -171,34 +171,37 @@ export function PipelineDetailPage() {
     }
   };
 
-  const handleAddSubscriber = () => {
-    const url = newSubscriberUrl.trim();
-    if (!url) { setNewSubscriberError('URL is required'); return; }
-    try { new URL(url); } catch { setNewSubscriberError('Must be a valid URL'); return; }
-    if (subscriberDraft.includes(url)) { setNewSubscriberError('Already added'); return; }
-    setSubscriberDraft((prev) => [...prev, url]);
-    setNewSubscriberUrl('');
-    setNewSubscriberError(null);
-  };
-
-  const handleRemoveSubscriber = (url: string) => {
-    setSubscriberDraft((prev) => prev.filter((u) => u !== url));
-  };
-
-  const handleSaveSubscribers = async () => {
+  const saveSubscriberUrls = async (urls: string[]) => {
     setIsSubscribersSaving(true);
     try {
       const updated = await apiFetch<Pipeline>(`/pipelines/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ subscriberUrls: subscriberDraft }),
+        body: JSON.stringify({ subscriberUrls: urls }),
       });
       setPipeline(updated);
-      addToast('Subscribers saved', 'success');
     } catch (err: unknown) {
       addToast(err instanceof Error ? err.message : 'Failed to save subscribers', 'error');
     } finally {
       setIsSubscribersSaving(false);
     }
+  };
+
+  const handleAddSubscriber = () => {
+    const url = newSubscriberUrl.trim();
+    if (!url) { setNewSubscriberError('URL is required'); return; }
+    try { new URL(url); } catch { setNewSubscriberError('Must be a valid URL'); return; }
+    if (subscriberDraft.includes(url)) { setNewSubscriberError('Already added'); return; }
+    const next = [...subscriberDraft, url];
+    setSubscriberDraft(next);
+    setNewSubscriberUrl('');
+    setNewSubscriberError(null);
+    void saveSubscriberUrls(next);
+  };
+
+  const handleRemoveSubscriber = (url: string) => {
+    const next = subscriberDraft.filter((u) => u !== url);
+    setSubscriberDraft(next);
+    void saveSubscriberUrls(next);
   };
 
   const handleCopyWebhookUrl = () => {
@@ -463,12 +466,6 @@ export function PipelineDetailPage() {
               )}
             </div>
 
-            {/* Save button */}
-            <div className="flex justify-end">
-              <Button onClick={handleSaveSubscribers} loading={isSubscribersSaving}>
-                Save subscribers
-              </Button>
-            </div>
           </div>
         )}
 
