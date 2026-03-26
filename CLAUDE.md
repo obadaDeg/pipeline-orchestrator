@@ -21,6 +21,10 @@ Auto-generated from all feature plans. Last updated: 2026-03-14
 - PostgreSQL — no schema changes; all seed data uses existing tables (009-demo-seeds-webhook-url)
 - TypeScript 5.4 (strict mode) (010-code-editor-inputs)
 - N/A — frontend only, no backend changes (010-code-editor-inputs)
+- JavaScript ES Modules (`.mjs`) for example scripts; Markdown for documentation + Node.js built-in `http`, `crypto` modules (subscriber server — zero new deps) (013-real-world-integrations)
+- N/A — no database changes (013-real-world-integrations)
+- TypeScript 5.4 strict mode, Node.js 20 LTS (backend) + React 18.3 / TypeScript (frontend) + Express 4.x, Drizzle ORM 0.30, Zod 3.x (backend); React Router v6, TailwindCSS 3.4, `@uiw/react-codemirror` (frontend — already installed) (014-webhook-simulator)
+- PostgreSQL — no schema changes. Reads `pipelineSigningSecrets.secretValue` and `pipelines.sourceId` from existing tables. (014-webhook-simulator)
 
 - TypeScript 5.x strict mode, Node.js 20 LTS + Express 4.x, BullMQ 5.x + ioredis 5.x, Drizzle ORM 0.30 + pg 8.x, Zod 3.x (001-webhook-pipeline-core)
 
@@ -40,9 +44,9 @@ npm test && npm run lint
 TypeScript 5.x strict mode, Node.js 20 LTS: Follow standard conventions
 
 ## Recent Changes
+- 014-webhook-simulator: Added TypeScript 5.4 strict mode, Node.js 20 LTS (backend) + React 18.3 / TypeScript (frontend) + Express 4.x, Drizzle ORM 0.30, Zod 3.x (backend); React Router v6, TailwindCSS 3.4, `@uiw/react-codemirror` (frontend — already installed)
+- 013-real-world-integrations: Added JavaScript ES Modules (`.mjs`) for example scripts; Markdown for documentation + Node.js built-in `http`, `crypto` modules (subscriber server — zero new deps)
 - 010-code-editor-inputs: Added TypeScript 5.4 (strict mode)
-- 009-demo-seeds-webhook-url: Added TypeScript 5.4, Node.js 20 LTS + Express 4.x (backend), React 18.3 + Vite 5 (dashboard), Drizzle ORM 0.30, argon2 (password hashing), node:crypto (signing secret generation)
-- 008-dashboard-api-parity: Added TypeScript 5.4, Node.js 20 LTS (backend + frontend) + Express 4.x, Drizzle ORM 0.30, Zod 3.x (backend); React 18.3, React Router v6, TailwindCSS 3.4, Vite 5, Vitest (dashboard)
 
 
 <!-- MANUAL ADDITIONS START -->

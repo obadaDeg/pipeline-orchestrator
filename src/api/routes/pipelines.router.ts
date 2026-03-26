@@ -4,7 +4,7 @@ import * as controller from '../controllers/pipelines.controller.js';
 import * as signingController from '../controllers/signing.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { validateBody } from '../middleware/validate-request.js';
-import { CreatePipelineBodySchema, UpdatePipelineBodySchema } from '../schemas/pipeline.schema.js';
+import { CreatePipelineBodySchema, FireSimulationBodySchema, UpdatePipelineBodySchema } from '../schemas/pipeline.schema.js';
 
 export const pipelinesRouter = Router();
 
@@ -21,3 +21,6 @@ pipelinesRouter.get('/:id/jobs', listPipelineJobs);
 pipelinesRouter.post('/:id/signing-secret', signingController.generateOrRotateHandler);
 pipelinesRouter.get('/:id/signing-secret', signingController.getStatusHandler);
 pipelinesRouter.delete('/:id/signing-secret', signingController.revokeHandler);
+
+// Webhook simulator — fires a payload through the full ingest chain server-side
+pipelinesRouter.post('/:id/fire-simulation', validateBody(FireSimulationBodySchema), controller.fireSimulation);

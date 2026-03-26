@@ -76,3 +76,11 @@ export const PaginationQuerySchema = z.object({
 export type CreatePipelineBody = z.infer<typeof CreatePipelineBodySchema>;
 export type UpdatePipelineBody = z.infer<typeof UpdatePipelineBodySchema>;
 export type PaginationQuery = z.infer<typeof PaginationQuerySchema>;
+
+// ─── Simulation Schema ────────────────────────────────────────────────────────
+
+export const FireSimulationBodySchema = z.object({
+  payload: z.record(z.unknown()),
+});
+
+export type FireSimulationBody = z.infer<typeof FireSimulationBodySchema>;

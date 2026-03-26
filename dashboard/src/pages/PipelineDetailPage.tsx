@@ -10,6 +10,7 @@ import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { Pagination } from '../components/Pagination';
 import { SigningSecretPanel } from '../components/SigningSecretPanel';
+import { SimulatorTab } from '../components/SimulatorTab';
 import { SkeletonRow } from '../components/SkeletonRow';
 import { Tabs } from '../components/Tabs';
 import { useApi } from '../hooks/useApi';
@@ -49,6 +50,7 @@ const TABS = [
   { key: 'subscribers', label: 'Subscribers' },
   { key: 'jobs', label: 'Jobs' },
   { key: 'security', label: 'Security' },
+  { key: 'simulator', label: 'Simulator' },
 ];
 
 export function PipelineDetailPage() {
@@ -135,9 +137,17 @@ export function PipelineDetailPage() {
     fetchPipeline();
   }, [id, apiFetch]);
 
+  const hasActiveJobs = jobs?.items.some(
+    (j) => j.status === 'PENDING' || j.status === 'PROCESSING',
+  ) ?? false;
+
   useEffect(() => {
+    if (activeTab !== 'jobs') return;
     fetchJobs(page);
-  }, [id, page, apiFetch]);
+    if (!hasActiveJobs) return;
+    const timer = setInterval(() => fetchJobs(page), 3_000);
+    return () => clearInterval(timer);
+  }, [id, page, apiFetch, activeTab, hasActiveJobs]);
 
   useEffect(() => {
     if (pipeline) {
@@ -566,6 +576,11 @@ export function PipelineDetailPage() {
         {/* Security tab */}
         {activeTab === 'security' && id && (
           <SigningSecretPanel pipelineId={id} />
+        )}
+
+        {/* Simulator tab */}
+        {activeTab === 'simulator' && id && (
+          <SimulatorTab pipelineId={id} />
         )}
       </div>
 

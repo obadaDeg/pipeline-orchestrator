@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from 'express';
 import { parsePagination, paginatedResponse } from '../../lib/pagination.js';
 import { successResponse } from '../../lib/response.js';
 import * as pipelineService from '../../services/pipeline.service.js';
+import { simulateWebhook } from '../../services/simulation.service.js';
+import type { FireSimulationBody } from '../schemas/pipeline.schema.js';
 
 export async function createPipeline(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -53,6 +55,16 @@ export async function deletePipeline(req: Request, res: Response, next: NextFunc
   try {
     await pipelineService.deletePipeline(req.params.id, req.user!.id);
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function fireSimulation(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { payload } = req.body as FireSimulationBody;
+    const result = await simulateWebhook(req.params.id, payload);
+    res.status(202).json(successResponse(result));
   } catch (err) {
     next(err);
   }
