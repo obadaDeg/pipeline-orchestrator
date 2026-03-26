@@ -1,20 +1,29 @@
 /**
  * GitHub Webhook Integration Setup
  *
- * Registers a webhook on your GitHub repository that POSTs push events
- * to your Pipeline Orchestrator instance.
+ * Registers a webhook on your GitHub repository that POSTs push, pull_request,
+ * and release events to your Pipeline Orchestrator instance.
  *
  * Prerequisites:
- *   - A GitHub Personal Access Token with repo:write scope
+ *   - A GitHub Personal Access Token with `admin:repo_hook` scope
+ *     (minimum required for webhook management; `repo` also works but grants
+ *     broader access than necessary)
  *   - ngrok running and tunnelling localhost:4000
+ *   - The target pipeline must have NO inbound signing secret configured
+ *     (unsigned mode). GitHub signs with X-Hub-Signature-256 which the
+ *     pipeline does not verify — the pipeline's own X-Webhook-Signature
+ *     scheme uses a different format (timestamp + body HMAC).
  *
  * Usage:
  *   GITHUB_TOKEN=ghp_... \
  *   GITHUB_REPO=owner/repo \
  *   TUNNEL_URL=https://xxxx.ngrok-free.app \
  *   PIPELINE_SOURCE_ID=<uuid> \
- *   WEBHOOK_SECRET=<whsec_...> \
  *   node examples/github-integration/setup.mjs
+ *
+ * Note: WEBHOOK_SECRET is optional. If set, GitHub will sign deliveries with
+ * X-Hub-Signature-256, but the pipeline ignores this header and accepts the
+ * request in unsigned mode regardless.
  */
 
 const {

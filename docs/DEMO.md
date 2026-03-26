@@ -304,7 +304,61 @@ Go to the pipeline → Jobs tab → the new job is `COMPLETED` with processed pa
 
 ---
 
-## 12. Real GitHub Integration (Live Push → Pipeline)
+## 12. webhook.site as a Subscriber (Zero-Setup)
+
+webhook.site gives you a unique public URL that displays incoming HTTP requests in your browser — no account or server setup required.
+
+### Step 1 — Get a webhook.site URL
+
+Open [https://webhook.site](https://webhook.site) in your browser. A unique URL is auto-generated, e.g.:
+
+```
+https://webhook.site/abcd-1234-efgh-5678
+```
+
+Copy that URL.
+
+### Step 2 — Register as a subscriber
+
+Register the webhook.site URL as a subscriber on the **Stripe Payments** pipeline (which is unsigned and accepts any POST):
+
+```bash
+curl -s -X POST "http://localhost:4000/pipelines/$STRIPE_SOURCE_ID/subscribers" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://webhook.site/abcd-1234-efgh-5678"}'
+# Replace the URL with your unique webhook.site address
+```
+
+If you don't have `$STRIPE_SOURCE_ID` from section 3, fetch it:
+
+```bash
+STRIPE_SOURCE_ID=$(curl -s http://localhost:4000/pipelines \
+  -H "Authorization: Bearer $API_KEY" \
+  | jq -r '.data.items[] | select(.name=="Stripe Payments") | .sourceUrl' \
+  | grep -oP '[a-f0-9-]{36}$')
+```
+
+### Step 3 — Send a test webhook
+
+```bash
+curl -s -X POST "http://localhost:4000/webhooks/$STRIPE_SOURCE_ID" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"charge.succeeded","amount":4999,"currency":"usd","customer":"cus_demo"}'
+# Response: 202 Accepted
+```
+
+### Step 4 — View in browser
+
+After 1–2 seconds, switch to the webhook.site tab. The processed payload (filtered through the `payload_filter` action — only `charge.succeeded` events pass) appears as a new request entry with full headers and body.
+
+**Dashboard**: Open **Stripe Payments → Jobs tab** — the new job shows `COMPLETED` with the processed payload.
+
+> **Note**: webhook.site free URLs are temporary and publicly visible. Use for demo/testing only.
+
+---
+
+## 13. Real GitHub Integration (Live Push → Pipeline)
 
 This turns the demo into a live system — every push to your GitHub repo triggers a real job.
 
@@ -324,6 +378,14 @@ ngrok http 4000
 
 Copy the `https://xxxx.ngrok-free.app` URL from the ngrok output.
 
+Verify the tunnel is forwarding correctly:
+
+```bash
+curl https://xxxx.ngrok-free.app/stats \
+  -H "Authorization: Bearer $API_KEY"
+# Should return a JSON stats response — if you see a response, the tunnel is working.
+```
+
 ### Step 2 — Start the subscriber server
 
 The subscriber server receives processed deliveries and pretty-prints them to your terminal.
@@ -332,6 +394,9 @@ The subscriber server receives processed deliveries and pretty-prints them to yo
 node examples/subscriber-server/index.mjs
 # Listening on http://localhost:5050
 ```
+
+> **Note**: Do not set `SUBSCRIBER_SECRET` — the delivery engine does not send
+> `x-delivery-signature`. If the secret is set, all deliveries will be rejected with `401`.
 
 In a new terminal, register it as a subscriber on the GitHub Events pipeline:
 
@@ -343,20 +408,21 @@ curl -s -X POST "http://localhost:4000/pipelines/$GH_PIPELINE_ID/subscribers" \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"url":"http://host.docker.internal:5050"}'
-# The worker runs inside Docker, so it reaches your host at host.docker.internal
+# The worker runs inside Docker — use host.docker.internal, NOT localhost:5050
 ```
+
+The terminal will show the processed payload (the `field_extractor` output — fields `event`, `repo`, `ref`, `author`). The Job ID shows as `unknown` because the delivery engine sends the processed payload directly without an envelope wrapper.
 
 ### Step 3 — Register the GitHub webhook
 
-You need a [GitHub Personal Access Token](https://github.com/settings/tokens) with `repo` scope.
+You need a [GitHub Personal Access Token](https://github.com/settings/tokens) with **`admin:repo_hook`** scope (minimum required for webhook management; `repo` also works but grants broader access than necessary).
+
+> **Important — Unsigned mode**: The GitHub Events pipeline must have **no inbound signing
+> secret configured**. GitHub signs deliveries with `X-Hub-Signature-256`, but the pipeline
+> verifies `X-Webhook-Signature` instead — these are different schemes and are not compatible.
+> The pipeline accepts all requests in unsigned mode.
 
 ```bash
-# Get the signing secret for the GitHub Events pipeline from the DB
-SECRET=$(PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres \
-  -d pipeline_orchestrator -t \
-  -c "SELECT pss.secret_value FROM pipeline_signing_secrets pss JOIN pipelines p ON p.id = pss.pipeline_id WHERE p.name = 'GitHub Events';" \
-  | tr -d ' \n')
-
 # Get the pipeline source UUID
 GH_SOURCE_ID=$(curl -s http://localhost:4000/pipelines \
   -H "Authorization: Bearer $API_KEY" \
@@ -364,13 +430,13 @@ GH_SOURCE_ID=$(curl -s http://localhost:4000/pipelines \
       const p=JSON.parse(d).data.items.find(x=>x.name==='GitHub Events'); \
       console.log(p.sourceUrl.split('/').pop()); })")
 
-# Register the webhook on your repo
+# Register the webhook on your repo (no signing secret — unsigned mode)
 GITHUB_TOKEN=ghp_... \
 GITHUB_REPO=obadaDeg/pipeline-orchestrator \
 TUNNEL_URL=https://xxxx.ngrok-free.app \
 PIPELINE_SOURCE_ID=$GH_SOURCE_ID \
-WEBHOOK_SECRET=$SECRET \
 node examples/github-integration/setup.mjs
+# Outputs: Hook ID: <id>  — save this for cleanup
 ```
 
 ### Step 4 — Push a commit and watch it flow
@@ -381,12 +447,12 @@ git push origin main
 ```
 
 **What happens next:**
-1. GitHub sends `POST https://xxxx.ngrok-free.app/webhooks/<sourceId>` with a signed payload
+1. GitHub sends `POST https://xxxx.ngrok-free.app/webhooks/<sourceId>` with a payload
 2. ngrok forwards it to `localhost:4000`
-3. The API verifies the HMAC signature → creates a job → enqueues to BullMQ
+3. The pipeline is in unsigned mode — the API accepts the request, creates a job → enqueues to BullMQ
 4. The worker picks it up → applies the `field_extractor` action (extracts `event`, `repo`, `ref`)
 5. The processed result is delivered to your subscriber server on `:5050`
-6. Your terminal shows the pretty-printed delivery in real time
+6. Your terminal shows the pretty-printed delivery (the `field_extractor` output — `event`, `repo`, `ref`, `author`)
 7. The dashboard updates — new `COMPLETED` job in the GitHub Events pipeline
 
 **In the dashboard** (`http://localhost:5173`):
@@ -431,3 +497,5 @@ node examples/github-integration/delete.mjs
 | Retry a job | `POST /jobs/:id/retry` |
 | Stats | `GET /stats` or `/stats` in sidebar |
 | Audit log | `GET /auth/audit-log` or Account page |
+| webhook.site subscriber | Open https://webhook.site, copy URL, register as subscriber |
+| GitHub integration | See section 13 — requires ngrok + `admin:repo_hook` token |

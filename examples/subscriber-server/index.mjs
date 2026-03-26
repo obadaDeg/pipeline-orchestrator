@@ -118,6 +118,12 @@ const server = http.createServer((req, res) => {
       prettyPrint(payload.payload, 4);
     }
 
+    // Fallback: delivery engine sends processed payload directly (no envelope wrapper)
+    if (!payload.result && !payload.payload) {
+      console.log(`\n  ${c.bold}${c.magenta}Received Payload:${c.reset}`);
+      prettyPrint(payload, 4);
+    }
+
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, received: new Date().toISOString() }));
   });
@@ -153,5 +159,9 @@ server.listen(PORT, () => {
   divider('Pipeline Orchestrator — Subscriber Server');
   console.log(`  ${c.green}Listening on${c.reset}  http://localhost:${PORT}`);
   console.log(`  ${c.bold}Signature:${c.reset}    ${SECRET ? c.green + 'enabled (SUBSCRIBER_SECRET set)' : c.yellow + 'disabled (set SUBSCRIBER_SECRET to enable)'}${c.reset}`);
+  if (SECRET) {
+    console.log(`  ${c.yellow}⚠  SUBSCRIBER_SECRET is set but the current delivery engine does not`);
+    console.log(`     send x-delivery-signature — all deliveries will be rejected with 401.${c.reset}`);
+  }
   console.log(`\n  Waiting for deliveries...\n`);
 });
