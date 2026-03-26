@@ -5,6 +5,7 @@ import { ActionConfig, ActionType } from '../actions/types.js';
 import { db } from '../db/index.js';
 import { jobs, pipelines, subscribers } from '../db/schema.js';
 import { runDelivery } from '../delivery/delivery-engine.js';
+import { logger } from '../lib/logger.js';
 import type { JobQueueData } from '../queue/job-data.types.js';
 
 export const jobConsumer: Processor<JobQueueData> = async (bullJob) => {
@@ -23,6 +24,7 @@ export const jobConsumer: Processor<JobQueueData> = async (bullJob) => {
     const subs = await db.select().from(subscribers).where(eq(subscribers.pipelineId, pipelineId));
 
     if (!pipeline) {
+      logger.warn('Job failed: pipeline deleted before processing', { jobId, pipelineId });
       await db
         .update(jobs)
         .set({
@@ -33,6 +35,13 @@ export const jobConsumer: Processor<JobQueueData> = async (bullJob) => {
         .where(eq(jobs.id, jobId));
       return;
     }
+
+    logger.info('Job picked up', {
+      jobId,
+      pipeline: pipeline.name,
+      action: pipeline.actionType,
+      subscribers: subs.length,
+    });
 
     // Parse raw payload — action receives an object when possible, string otherwise
     let payload: unknown;
@@ -48,12 +57,15 @@ export const jobConsumer: Processor<JobQueueData> = async (bullJob) => {
 
     // null = payload filter no-match — COMPLETED with no delivery
     if (processedPayload === null) {
+      logger.info('Job completed: payload filtered (no-match)', { jobId });
       await db
         .update(jobs)
         .set({ status: 'COMPLETED', updatedAt: new Date() })
         .where(eq(jobs.id, jobId));
       return;
     }
+
+    logger.info('Action completed, starting delivery', { jobId, subscribers: subs.length });
 
     // Persist processed payload before delivery
     await db
@@ -64,13 +76,17 @@ export const jobConsumer: Processor<JobQueueData> = async (bullJob) => {
     // Deliver to all subscribers with per-subscriber retry
     const { allSucceeded } = await runDelivery(jobId, subs, processedPayload);
 
+    const finalStatus = allSucceeded ? 'COMPLETED' : 'FAILED';
+    logger.info(`Job ${finalStatus.toLowerCase()}`, { jobId, allSucceeded });
+
     await db
       .update(jobs)
-      .set({ status: allSucceeded ? 'COMPLETED' : 'FAILED', updatedAt: new Date() })
+      .set({ status: finalStatus, updatedAt: new Date() })
       .where(eq(jobs.id, jobId));
   } catch (err) {
     const errorMessage =
       err instanceof Error ? err.message : 'Unexpected error during job processing';
+    logger.error('Job failed with unexpected error', { jobId, error: errorMessage });
     await db
       .update(jobs)
       .set({ status: 'FAILED', errorMessage, updatedAt: new Date() })

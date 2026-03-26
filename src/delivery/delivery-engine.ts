@@ -1,6 +1,7 @@
 import { config } from '../config.js';
 import { db } from '../db/index.js';
 import { deliveryAttempts } from '../db/schema.js';
+import { logger } from '../lib/logger.js';
 import { calculateBackoff, sleep } from './backoff.js';
 import { deliverPayload } from './http-client.js';
 
@@ -34,9 +35,23 @@ export async function runDelivery(
       });
 
       if (result.success) {
+        logger.info('Delivery succeeded', {
+          jobId,
+          url: subscriber.url,
+          attempt,
+          httpStatus: result.httpStatus,
+          responseTimeMs: result.responseTimeMs,
+        });
         subscriberSucceeded = true;
         break;
       }
+
+      logger.warn('Delivery attempt failed', {
+        jobId,
+        url: subscriber.url,
+        attempt,
+        httpStatus: result.httpStatus ?? 'N/A',
+      });
 
       // Sleep between retries, not after the final attempt
       if (attempt < config.DELIVERY_MAX_RETRIES) {

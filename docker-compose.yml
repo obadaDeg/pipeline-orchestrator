@@ -66,6 +66,7 @@ services:
     command: ["node", "dist/worker/index.js"]
     environment:
       NODE_ENV: production
+      LOG_PRETTY: "true"
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/pipeline_orchestrator
       REDIS_HOST: redis
       REDIS_PORT: 6379
